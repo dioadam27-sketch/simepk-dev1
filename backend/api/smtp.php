@@ -1,7 +1,7 @@
 <?php
 /**
  * Simple SMTP Mailer Class
- * Alternatif ringan pengganti PHPMailer untuk penggunaan di cPanel tanpa Composer.
+ * Mendukung STARTTLS untuk Port 587 (Kompatibel dengan cPanel Localhost)
  */
 class SimpleSMTP {
     private $host;
@@ -9,12 +9,14 @@ class SimpleSMTP {
     private $username;
     private $password;
     private $timeout = 30;
+    private $secure;
 
-    public function __construct($host, $username, $password, $port = 465, $secure = 'ssl') {
-        $this->host = ($secure === 'ssl' ? 'ssl://' : '') . $host;
+    public function __construct($host, $username, $password, $port = 587, $secure = 'tls') {
+        $this->host = $host;
         $this->port = $port;
         $this->username = $username;
         $this->password = $password;
+        $this->secure = $secure;
     }
 
     private function getResponse($socket) {
@@ -27,31 +29,48 @@ class SimpleSMTP {
     }
 
     public function send($to, $subject, $body, $fromName) {
-        // Gunakan stream_socket_client dengan opsi bypass SSL verify (self-signed) untuk localhost
-        $context = stream_context_create([
-            'ssl' => [
-                'verify_peer' => false,
-                'verify_peer_name' => false,
-                'allow_self_signed' => true
-            ]
-        ]);
-
+        // 1. Connect ke TCP (belum dienkripsi)
         $socket = stream_socket_client(
-            $this->host . ":" . $this->port,
+            "tcp://" . $this->host . ":" . $this->port,
             $errno,
             $errstr,
-            $this->timeout,
-            STREAM_CLIENT_CONNECT,
-            $context
+            $this->timeout
         );
 
         if (!$socket) throw new Exception("Gagal connect ke SMTP: $errstr ($errno)");
-
         $this->getResponse($socket); // Server ready
 
+        // 2. Hello
         fputs($socket, "EHLO " . $_SERVER['SERVER_NAME'] . "\r\n");
         $this->getResponse($socket);
 
+        // 3. STARTTLS Logic (Jika menggunakan port 587/tls)
+        if ($this->secure === 'tls') {
+            fputs($socket, "STARTTLS\r\n");
+            $resp = $this->getResponse($socket);
+            if (substr($resp, 0, 3) != '220') {
+                throw new Exception("Gagal STARTTLS: $resp");
+            }
+
+            // Enable Crypto
+            $crypto_method = STREAM_CRYPTO_METHOD_TLS_CLIENT;
+            if (defined('STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT')) {
+                $crypto_method |= STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT;
+            }
+            if (defined('STREAM_CRYPTO_METHOD_TLSv1_1_CLIENT')) {
+                $crypto_method |= STREAM_CRYPTO_METHOD_TLSv1_1_CLIENT;
+            }
+
+            if (!stream_socket_enable_crypto($socket, true, $crypto_method)) {
+                throw new Exception("Gagal mengaktifkan enkripsi SSL/TLS.");
+            }
+
+            // Kirim EHLO lagi setelah secure channel terbentuk
+            fputs($socket, "EHLO " . $_SERVER['SERVER_NAME'] . "\r\n");
+            $this->getResponse($socket);
+        }
+
+        // 4. Auth
         fputs($socket, "AUTH LOGIN\r\n");
         $this->getResponse($socket);
 
@@ -60,8 +79,9 @@ class SimpleSMTP {
 
         fputs($socket, base64_encode($this->password) . "\r\n");
         $resp = $this->getResponse($socket);
-        if (substr($resp, 0, 3) != '235') throw new Exception("Auth Failed: $resp");
+        if (substr($resp, 0, 3) != '235') throw new Exception("Auth Failed. Periksa email & password config. ($resp)");
 
+        // 5. Send Headers & Body
         fputs($socket, "MAIL FROM: <" . $this->username . ">\r\n");
         $this->getResponse($socket);
 
@@ -71,38 +91,26 @@ class SimpleSMTP {
         fputs($socket, "DATA\r\n");
         $this->getResponse($socket);
 
-        // --- HEADERS LENGKAP & OPTIMASI DELIVERABILITY ---
-        
-        // Ambil domain dari email pengirim untuk Message-ID yang valid
+        // --- HEADERS ---
         $domainParts = explode('@', $this->username);
         $domain = count($domainParts) > 1 ? $domainParts[1] : $_SERVER['SERVER_NAME'];
         
         $headers  = "MIME-Version: 1.0\r\n";
         $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
-        $headers .= "Content-Transfer-Encoding: 8bit\r\n"; // 8bit lebih aman untuk HTML
+        $headers .= "Content-Transfer-Encoding: 8bit\r\n";
         $headers .= "Date: " . date("r") . "\r\n";
         
-        // Encode Subject & From
         $encodedSubject = "=?UTF-8?B?" . base64_encode($subject) . "?=";
         $encodedFromName = "=?UTF-8?B?" . base64_encode($fromName) . "?=";
         
         $headers .= "From: $encodedFromName <" . $this->username . ">\r\n";
-        $headers .= "Sender: <" . $this->username . ">\r\n"; // Header Sender membantu di beberapa filter
-        
-        // PENTING: Header To jangan pakai kurung siku <> di sini untuk kompatibilitas max
+        $headers .= "Sender: <" . $this->username . ">\r\n";
         $headers .= "To: $to\r\n";
-        
         $headers .= "Subject: $encodedSubject\r\n";
         $headers .= "Reply-To: <" . $this->username . ">\r\n";
         $headers .= "Return-Path: <" . $this->username . ">\r\n";
-        
-        // Message-ID Valid
-        $messageId = md5(uniqid(time())) . "@" . $domain;
-        $headers .= "Message-ID: <$messageId>\r\n";
-        
+        $headers .= "Message-ID: <" . md5(uniqid(time())) . "@" . $domain . ">\r\n";
         $headers .= "X-Mailer: SIM-KEPK Mailer\r\n";
-        $headers .= "X-Priority: 3\r\n"; 
-        $headers .= "Organization: Komisi Etik Penelitian Kesehatan\r\n";
 
         fputs($socket, "$headers\r\n$body\r\n.\r\n");
         $resp = $this->getResponse($socket);
@@ -110,7 +118,7 @@ class SimpleSMTP {
         fputs($socket, "QUIT\r\n");
         fclose($socket);
 
-        if (substr($resp, 0, 3) != '250') throw new Exception("Gagal mengirim email (Server menolak data): $resp");
+        if (substr($resp, 0, 3) != '250') throw new Exception("Gagal mengirim email (Server menolak): $resp");
         
         return true;
     }

@@ -23,14 +23,14 @@ $password   = "@Dioadam27";           // Password Database
 // ==========================================
 // KONFIGURASI SMTP EMAIL (CPANEL)
 // ==========================================
-// Ganti dengan akun email asli yang dibuat di cPanel -> Email Accounts
+// Menggunakan Port 587 (Submission) yang lebih ramah firewall
 $smtp_config = [
-    'host'      => 'localhost',            // PENTING: Gunakan 'localhost' untuk menghindari blokir firewall
-    'username'  => 'admin@ppk2ipe.unair.ac.id', // Email lengkap
-    'password'  => '@Dioadam27',           // Password email
-    'port'      => 465,                    // Port SSL
-    'from_name' => 'Admin SIM-KEPK',       // Nama pengirim yang muncul
-    'secure'    => 'ssl'                   // 'ssl'
+    'host'      => 'localhost',            // Host Internal
+    'username'  => 'admin@ppk2ipe.unair.ac.id', 
+    'password'  => '@Dioadam27',           
+    'port'      => 587,                    // Ubah ke 587 (STARTTLS)
+    'from_name' => 'Admin SIM-KEPK',       
+    'secure'    => 'tls'                   // Mode TLS
 ];
 
 // URL Frontend (Untuk link reset password)
