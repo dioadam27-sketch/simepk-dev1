@@ -168,13 +168,29 @@ try {
                     $link = $frontend_url . "?view=reset&token=" . $token;
                     
                     $subject = "Reset Password - SIM KEPK";
+                    
+                    // Body Email HTML yang lebih rapi
                     $body = "
-                        <h3>Halo, {$user['name']}</h3>
-                        <p>Kami menerima permintaan untuk mereset password akun SIM KEPK Anda.</p>
-                        <p>Silakan klik link berikut untuk membuat password baru:</p>
-                        <p><a href='$link' style='background:#003B73;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;'>Reset Password</a></p>
-                        <p><small>Link ini berlaku selama 1 jam.</small></p>
-                        <p>Jika Anda tidak merasa meminta reset password, abaikan email ini.</p>
+                        <html>
+                        <head>
+                          <style>
+                            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                            .btn { background:#003B73; color:white; padding:10px 20px; text-decoration:none; border-radius:5px; display:inline-block; font-weight:bold; }
+                            .footer { font-size:12px; color:#777; margin-top:20px; border-top:1px solid #eee; padding-top:10px; }
+                          </style>
+                        </head>
+                        <body>
+                            <h3>Halo, {$user['name']}</h3>
+                            <p>Kami menerima permintaan untuk mereset password akun SIM KEPK Anda.</p>
+                            <p>Silakan klik tombol di bawah ini untuk membuat password baru:</p>
+                            <p style='margin:20px 0;'><a href='$link' class='btn'>Reset Password</a></p>
+                            <div class='footer'>
+                                <p>Jika tombol tidak berfungsi, salin link ini ke browser Anda:<br/>$link</p>
+                                <p>Link ini berlaku selama 1 jam.</p>
+                                <p>Jika Anda tidak merasa meminta reset password, abaikan email ini.</p>
+                            </div>
+                        </body>
+                        </html>
                     ";
 
                     $mailer->send($email, $subject, $body, $smtp_config['from_name']);
