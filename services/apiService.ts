@@ -1,4 +1,3 @@
-
 import { ResearchSubmission, UserProfile, DocumentRequirement, UserRole } from '../types';
 
 // ============================================================================

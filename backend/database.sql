@@ -1,4 +1,3 @@
-
 -- PETUNJUK KHUSUS CPANEL:
 -- 1. Buat database manual di cPanel (Menu MySQL Databases), misal: 'username_simkepk'
 -- 2. Buka phpMyAdmin, KLIK database tersebut di panel kiri.
@@ -36,6 +35,47 @@ CREATE TABLE IF NOT EXISTS submissions (
     certificate_url VARCHAR(255), -- New Column for uploaded certificate
     team_members LONGTEXT -- New Column for Anggota Peneliti (JSON)
 );
+
+-- UPDATE STRUKTUR TABEL (JIKA TABEL SUDAH ADA SEBELUMNYA)
+-- Jalankan perintah di bawah ini jika Anda mengalami error saat submit
+-- Gunakan "IGNORE" atau cek manual di struktur tabel jika sudah ada.
+
+-- Pastikan kolom certificate_url ada
+SET @dbname = DATABASE();
+SET @tablename = "submissions";
+SET @columnname = "certificate_url";
+SET @preparedStatement = (SELECT IF(
+  (
+    SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE
+      (table_name = @tablename)
+      AND (table_schema = @dbname)
+      AND (column_name = @columnname)
+  ) > 0,
+  "SELECT 1",
+  "ALTER TABLE submissions ADD COLUMN certificate_url VARCHAR(255)"
+));
+PREPARE alterIfNotExists FROM @preparedStatement;
+EXECUTE alterIfNotExists;
+DEALLOCATE PREPARE alterIfNotExists;
+
+-- Pastikan kolom team_members ada
+SET @columnname = "team_members";
+SET @preparedStatement = (SELECT IF(
+  (
+    SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE
+      (table_name = @tablename)
+      AND (table_schema = @dbname)
+      AND (column_name = @columnname)
+  ) > 0,
+  "SELECT 1",
+  "ALTER TABLE submissions ADD COLUMN team_members LONGTEXT"
+));
+PREPARE alterIfNotExists FROM @preparedStatement;
+EXECUTE alterIfNotExists;
+DEALLOCATE PREPARE alterIfNotExists;
+
 
 -- Tabel Config (Master Dokumen)
 CREATE TABLE IF NOT EXISTS config (

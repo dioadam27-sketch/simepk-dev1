@@ -1,4 +1,3 @@
-
 <?php
 // Memuat konfigurasi database dan SMTP Helper
 require_once 'config.php';
@@ -20,10 +19,9 @@ if ($method === 'GET') {
     $payload = isset($input['payload']) ? $input['payload'] : [];
 }
 
-// Konfigurasi Folder Upload
-// URL: https://ppk2ipe.unair.ac.id/upload/
-// Path relative dari api/index.php ke folder upload adalah ../upload/
-$uploadDir = '../upload/';
+// Konfigurasi Folder Upload (MENGGUNAKAN ABSOLUTE PATH)
+// __DIR__ mengacu pada folder 'api'. Naik satu level ke root, lalu ke folder 'upload'.
+$uploadDir = __DIR__ . '/../upload/';
 
 // Base URL eksplisit sesuai permintaan user
 $baseUrl = 'https://ppk2ipe.unair.ac.id/upload/';
@@ -34,9 +32,13 @@ $baseUrl = 'https://ppk2ipe.unair.ac.id/upload/';
  * Fungsi untuk menyimpan file dari string Base64 ke folder server
  */
 function uploadBase64File($base64, $filename, $uploadDir, $baseUrl) {
-    // Buat folder jika belum ada
+    // Buat folder jika belum ada dengan permission 0755
     if (!file_exists($uploadDir)) {
-        mkdir($uploadDir, 0755, true);
+        if (!mkdir($uploadDir, 0755, true)) {
+            // Jika gagal membuat folder, return null (jangan crash)
+            error_log("Gagal membuat folder upload di: " . $uploadDir);
+            return null; 
+        }
     }
     
     // Bersihkan nama file dari karakter aneh untuk keamanan
@@ -46,10 +48,17 @@ function uploadBase64File($base64, $filename, $uploadDir, $baseUrl) {
     
     // Decode Base64 & Save
     $data = base64_decode($base64);
+    if ($data === false) {
+        error_log("Gagal decode base64 file: " . $filename);
+        return null;
+    }
+
     if (file_put_contents($filePath, $data)) {
         return $baseUrl . $uniqueName;
+    } else {
+        error_log("Gagal menulis file ke: " . $filePath);
+        return null;
     }
-    return null;
 }
 
 // --- MAIN ROUTING LOGIC ---
@@ -501,6 +510,7 @@ try {
             $response = ["status" => "error", "message" => "Unknown action"];
     }
 } catch (Exception $e) {
+    // Tampilkan pesan error spesifik untuk debugging
     $response = ["status" => "error", "message" => $e->getMessage()];
 }
 

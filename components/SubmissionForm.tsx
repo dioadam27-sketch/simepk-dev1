@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ResearchSubmission, SEVEN_STANDARDS, DocumentFile, DocumentRequirement, TeamMember } from '../types';
 import { UploadCloud, Check, AlertCircle, X, Loader2, AlertTriangle, Send, FileText, Info, Plus, UserPlus, Trash2, RefreshCcw } from 'lucide-react';
@@ -153,7 +152,9 @@ export const SubmissionForm: React.FC<SubmissionFormProps> = ({ onSubmit, onCanc
       
     } catch (error) {
       console.error("Submission error:", error);
-      alert("Gagal mengirim pengajuan. Silakan coba lagi.");
+      // Menampilkan pesan error spesifik dari backend jika ada
+      const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan yang tidak diketahui.";
+      alert("Gagal mengirim pengajuan: " + errorMessage);
       setIsSubmitting(false);
     }
   };

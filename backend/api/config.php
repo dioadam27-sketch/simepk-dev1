@@ -1,4 +1,3 @@
-
 <?php
 // Tentukan Domain Frontend (React) Anda di sini untuk keamanan CORS
 // Saat development bisa menggunakan *
