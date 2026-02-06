@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Layout } from './components/Layout';
 import { SubmissionForm } from './components/SubmissionForm';
@@ -7,7 +6,8 @@ import { Register } from './components/Register';
 import { LandingPage } from './components/LandingPage';
 import { ResearchSubmission, UserRole, SubmissionStatus, UserProfile, DocumentRequirement, UserStatus } from './types';
 import { apiService } from './services/apiService';
-import { FolderCog, Key, Lock, Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
+import { FolderCog, Key, Lock, Loader2, CheckCircle, AlertTriangle, BookOpen, Download } from 'lucide-react';
+import { generateManualPDF } from './components/Shared';
 
 // Import New Modular Components
 import { ResearcherDashboard, ResearcherSubmissionDetail, MonitoringView } from './components/ResearcherModule';
@@ -551,6 +551,61 @@ export default function App() {
                 onUpdateProfile={(newEmail) => setCurrentUser(prev => prev ? { ...prev, email: newEmail } : null)}
               />
           ) : <div>Loading...</div>
+        );
+
+      // NEW: GUIDE PAGE
+      case 'guide':
+        return (
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 max-w-4xl mx-auto animate-fadeIn">
+             <div className="flex items-center gap-4 mb-6 pb-6 border-b border-slate-100">
+                <div className="w-14 h-14 bg-blue-50 text-unair-blue rounded-full flex items-center justify-center">
+                   <BookOpen className="w-8 h-8"/>
+                </div>
+                <div>
+                   <h2 className="text-2xl font-bold text-slate-800">Panduan Pengguna Sistem</h2>
+                   <p className="text-slate-500">Unduh buku petunjuk penggunaan SIM KEPK sesuai peran Anda.</p>
+                </div>
+             </div>
+
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="border border-slate-200 rounded-xl p-6 hover:shadow-lg transition-all hover:border-unair-blue group">
+                   <h3 className="font-bold text-lg text-slate-800 mb-2">Panduan Peneliti</h3>
+                   <p className="text-sm text-slate-500 mb-4">Langkah-langkah registrasi, pengajuan protokol, hingga monitoring status EC.</p>
+                   <button 
+                     onClick={() => generateManualPDF('researcher')}
+                     className="w-full flex items-center justify-center gap-2 bg-slate-50 text-slate-700 py-3 rounded-lg font-bold group-hover:bg-unair-blue group-hover:text-white transition-colors"
+                   >
+                      <Download className="w-4 h-4"/> Download PDF
+                   </button>
+                </div>
+
+                {currentUser?.role === 'reviewer' && (
+                  <div className="border border-slate-200 rounded-xl p-6 hover:shadow-lg transition-all hover:border-unair-blue group">
+                    <h3 className="font-bold text-lg text-slate-800 mb-2">Panduan Reviewer</h3>
+                    <p className="text-sm text-slate-500 mb-4">Cara melakukan telaah protokol, memberikan catatan revisi, dan persetujuan.</p>
+                    <button 
+                      onClick={() => generateManualPDF('reviewer')}
+                      className="w-full flex items-center justify-center gap-2 bg-slate-50 text-slate-700 py-3 rounded-lg font-bold group-hover:bg-unair-blue group-hover:text-white transition-colors"
+                    >
+                        <Download className="w-4 h-4"/> Download PDF
+                    </button>
+                  </div>
+                )}
+
+                {currentUser?.role === 'admin' && (
+                  <div className="border border-slate-200 rounded-xl p-6 hover:shadow-lg transition-all hover:border-unair-blue group">
+                    <h3 className="font-bold text-lg text-slate-800 mb-2">Panduan Administrator</h3>
+                    <p className="text-sm text-slate-500 mb-4">Manajemen user, pengaturan sistem, dan penerbitan sertifikat EC.</p>
+                    <button 
+                      onClick={() => generateManualPDF('admin')}
+                      className="w-full flex items-center justify-center gap-2 bg-slate-50 text-slate-700 py-3 rounded-lg font-bold group-hover:bg-unair-blue group-hover:text-white transition-colors"
+                    >
+                        <Download className="w-4 h-4"/> Download PDF
+                    </button>
+                  </div>
+                )}
+             </div>
+          </div>
         );
 
       default:

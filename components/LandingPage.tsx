@@ -1,6 +1,6 @@
-
 import React, { useState } from 'react';
-import { ShieldCheck, FileText, Users, CheckCircle, ArrowRight, BookOpen, Activity, Phone, MapPin, Mail, List, FileSignature, Microscope, Scale } from 'lucide-react';
+import { ShieldCheck, FileText, Users, CheckCircle, ArrowRight, BookOpen, Activity, Phone, MapPin, Mail, List, FileSignature, Microscope, Scale, Download } from 'lucide-react';
+import { generateManualPDF } from './Shared';
 
 interface LandingPageProps {
   onEnterSystem: () => void;
@@ -38,7 +38,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterSystem }) => {
             </div>
 
             {/* Desktop Menu */}
-            <div className="hidden md:flex items-center space-x-8">
+            <div className="hidden md:flex items-center space-x-6">
               <a 
                 href="#beranda" 
                 onClick={(e) => scrollToSection(e, 'beranda')}
@@ -60,6 +60,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterSystem }) => {
               >
                 Alur Pengajuan
               </a>
+              
+              <div className="h-6 w-px bg-slate-200 mx-2"></div>
+
+              <button 
+                onClick={() => generateManualPDF('general')}
+                className="text-sm font-bold text-slate-700 hover:text-unair-blue flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors"
+                title="Download Panduan PDF"
+              >
+                <Download className="w-4 h-4" />
+                Panduan
+              </button>
+
               <button 
                 onClick={onEnterSystem}
                 className="bg-unair-blue text-white px-5 py-2.5 rounded-full font-bold text-sm shadow-lg shadow-blue-900/10 hover:bg-blue-800 transition-all flex items-center gap-2"
@@ -95,13 +107,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterSystem }) => {
                   Ajukan Etik Sekarang
                   <ArrowRight className="w-5 h-5" />
                 </button>
-                <a 
-                  href="#prosedur"
-                  onClick={(e) => scrollToSection(e, 'prosedur')}
-                  className="px-8 py-4 bg-white border border-slate-200 text-slate-700 rounded-lg font-semibold hover:bg-slate-50 transition-all flex items-center justify-center"
+                <button 
+                  onClick={() => generateManualPDF('general')}
+                  className="px-8 py-4 bg-white border border-slate-200 text-slate-700 rounded-lg font-semibold hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
                 >
-                  Pelajari Prosedur
-                </a>
+                  <Download className="w-4 h-4" />
+                  Download Panduan
+                </button>
               </div>
             </div>
             <div className="relative hidden lg:block">

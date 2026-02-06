@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { UserRole } from '../types';
-import { ShieldCheck, User, Users, ArrowRight, Lock, Mail, Building, AlertCircle, AlertTriangle, Send, CreditCard, Phone, ChevronLeft, Clock, CheckCircle, HelpCircle, Settings, Home } from 'lucide-react';
+import { ShieldCheck, User, Users, ArrowRight, Lock, Mail, Building, AlertCircle, AlertTriangle, Send, CreditCard, Phone, ChevronLeft, Clock, CheckCircle, HelpCircle, Settings, Home, Download, BookOpen } from 'lucide-react';
 import { apiService } from '../services/apiService';
+import { generateManualPDF } from './Shared';
 
 interface LoginProps {
   // Updated return type to include message
@@ -109,16 +110,25 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick, onBackTo
         <div className="absolute top-0 left-0 w-full h-1/2 bg-[#003B73] z-0"></div>
         <div className="absolute top-20 left-10 w-64 h-64 bg-white/5 rounded-full blur-3xl z-0"></div>
         
-        {/* Back to Home Button */}
-        {onBackToHome && (
-          <button 
-            onClick={onBackToHome}
-            className="absolute top-6 left-6 z-20 flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-white hover:bg-white hover:text-unair-blue transition-all font-medium text-sm group"
-          >
-            <Home className="w-4 h-4" />
-            <span>Beranda</span>
-          </button>
-        )}
+        {/* Header Buttons */}
+        <div className="absolute top-6 left-6 z-20 flex gap-3">
+            {onBackToHome && (
+            <button 
+                onClick={onBackToHome}
+                className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-white hover:bg-white hover:text-unair-blue transition-all font-medium text-sm group"
+            >
+                <Home className="w-4 h-4" />
+                <span>Beranda</span>
+            </button>
+            )}
+            <button 
+                onClick={() => generateManualPDF('general')}
+                className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-white hover:bg-white hover:text-unair-blue transition-all font-medium text-sm group"
+            >
+                <Download className="w-4 h-4" />
+                <span>Unduh Panduan</span>
+            </button>
+        </div>
         
         <div className="z-10 text-center mb-10 mt-16 md:mt-0">
           <div className="flex items-center justify-center space-x-4 mb-4 text-white">
@@ -280,8 +290,13 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick, onBackTo
               </button>
             </form>
 
-            <div className="mt-8 text-center text-xs text-slate-400">
-               <span>Belum punya akun? <button onClick={onRegisterClick} className="text-[#003B73] font-bold hover:underline">Daftar Akun Baru</button></span>
+            <div className="mt-8 text-center text-xs text-slate-400 space-y-3">
+               <div>
+                  <span>Belum punya akun? <button onClick={onRegisterClick} className="text-[#003B73] font-bold hover:underline">Daftar Akun Baru</button></span>
+               </div>
+               <button onClick={() => generateManualPDF('general')} className="text-slate-500 hover:text-unair-blue flex items-center justify-center gap-1 mx-auto">
+                 <BookOpen className="w-3 h-3"/> Butuh bantuan? Unduh Panduan
+               </button>
             </div>
           </div>
         </div>

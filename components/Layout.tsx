@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { LayoutDashboard, FileText, CheckCircle, ShieldCheck, UserCircle, LogOut, Users, Settings, FolderCog, FileStack } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckCircle, ShieldCheck, UserCircle, LogOut, Users, Settings, FolderCog, FileStack, BookOpen } from 'lucide-react';
 import { UserRole, UserProfile } from '../types';
 
 interface LayoutProps {
@@ -43,6 +42,9 @@ export const Layout: React.FC<LayoutProps> = ({
     ];
   }
 
+  // Tambahkan menu Panduan untuk semua role di paling bawah
+  menuItems.push({ id: 'guide', label: 'Panduan Sistem', icon: BookOpen });
+
   return (
     <div className="flex h-screen bg-gray-50 font-sans text-slate-800">
       {/* Sidebar */}
@@ -61,7 +63,7 @@ export const Layout: React.FC<LayoutProps> = ({
           </p>
         </div>
 
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           {menuItems.map((item) => (
             <button
               key={item.id}
