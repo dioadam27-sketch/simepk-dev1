@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UserRole } from '../types';
-import { ShieldCheck, User, ArrowRight, Lock, Mail, AlertCircle, Settings, ChevronLeft, Users, AlertTriangle, Home, HelpCircle, Send, CheckCircle, CreditCard } from 'lucide-react';
+import { ShieldCheck, User, Users, ArrowRight, Lock, Mail, Building, AlertCircle, AlertTriangle, Send, CreditCard, Phone, ChevronLeft, Clock, CheckCircle, HelpCircle, Settings, Home } from 'lucide-react';
 import { apiService } from '../services/apiService';
 
 interface LoginProps {
@@ -25,7 +25,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick, onBackTo
   const [adminPassword, setAdminPassword] = useState('');
 
   // State for Forgot Password
-  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotIdn, setForgotIdn] = useState('');
   const [forgotStatus, setForgotStatus] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
 
   const [showBackConfirm, setShowBackConfirm] = useState(false);
@@ -86,10 +86,11 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick, onBackTo
     setIsLoading(true);
 
     try {
-        const res = await apiService.forgotPassword(forgotEmail);
+        // Mengirim Identity Number (NIM/NIP/NIK) ke API
+        const res = await apiService.forgotPassword(forgotIdn);
         if (res.status === 'success') {
             setForgotStatus({ type: 'success', msg: res.message });
-            setForgotEmail('');
+            setForgotIdn('');
         } else {
             setForgotStatus({ type: 'error', msg: res.message });
         }
@@ -309,7 +310,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick, onBackTo
                 </div>
                 <h2 className="text-2xl font-bold text-slate-900">Lupa Password?</h2>
                 <p className="text-slate-500 text-sm mt-2 leading-relaxed">
-                   Masukkan alamat email terdaftar Anda. Kami akan mengirimkan link untuk mereset password.
+                   Masukkan <strong>NIM / NIP / NIK</strong> terdaftar Anda. Admin akan menerima notifikasi dan melakukan reset password secara manual.
                 </p>
              </div>
 
@@ -322,16 +323,16 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick, onBackTo
 
              <form onSubmit={handleForgotPassword} className="space-y-6">
                 <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Email Terdaftar</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">NIM / NIP / NIK Terdaftar</label>
                     <div className="relative">
-                        <Mail className="absolute left-3 top-2.5 h-5 w-5 text-slate-400" />
+                        <CreditCard className="absolute left-3 top-2.5 h-5 w-5 text-slate-400" />
                         <input
-                            type="email"
+                            type="text"
                             required
                             className="block w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-unair-blue focus:border-transparent outline-none text-slate-800 font-medium"
-                            placeholder="nama@email.com"
-                            value={forgotEmail}
-                            onChange={(e) => setForgotEmail(e.target.value)}
+                            placeholder="Nomor Identitas Akademik / KTP"
+                            value={forgotIdn}
+                            onChange={(e) => setForgotIdn(e.target.value)}
                         />
                     </div>
                 </div>
@@ -340,8 +341,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick, onBackTo
                     disabled={isLoading}
                     className="w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-lg bg-unair-blue text-white font-bold hover:bg-blue-800 transition-colors shadow-md disabled:opacity-70"
                 >
-                    {isLoading ? <span className="animate-pulse">Mengirim Link...</span> : (
-                        <><span>Kirim Link Reset</span> <Send className="w-4 h-4" /></>
+                    {isLoading ? <span className="animate-pulse">Mengirim Permintaan...</span> : (
+                        <><span>Kirim Permintaan Reset</span> <Send className="w-4 h-4" /></>
                     )}
                 </button>
              </form>

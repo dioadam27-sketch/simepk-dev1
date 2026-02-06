@@ -146,26 +146,16 @@ try {
             break;
 
         case 'forgot_password':
-            // 1. Cek Email
-            $email = trim($payload['email']);
-            $stmt = $conn->prepare("SELECT name FROM users WHERE email = :email LIMIT 1");
-            $stmt->execute([':email' => $email]);
+            // UPDATED LOGIC: Kirim NIP -> Notifikasi Admin
+            $idn = trim($payload['identityNumber']);
+            
+            // 1. Cek User exist by ID Number
+            $stmt = $conn->prepare("SELECT name, email, identity_number, institution FROM users WHERE identity_number = :idn LIMIT 1");
+            $stmt->execute([':idn' => $idn]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($user) {
-                // 2. Generate Token
-                $token = bin2hex(random_bytes(32));
-                $expires = date("Y-m-d H:i:s", strtotime("+1 hour")); // Expired 1 jam
-
-                // 3. Simpan ke Database
-                // Hapus token lama user ini jika ada
-                $del = $conn->prepare("DELETE FROM password_resets WHERE email = :email");
-                $del->execute([':email' => $email]);
-
-                $ins = $conn->prepare("INSERT INTO password_resets (email, token, expires_at) VALUES (:email, :token, :exp)");
-                $ins->execute([':email' => $email, ':token' => $token, ':exp' => $expires]);
-
-                // 4. Kirim Email via SMTP
+                // 2. Kirim Email Notifikasi ke ADMIN
                 try {
                     $mailer = new SimpleSMTP(
                         $smtp_config['host'],
@@ -174,67 +164,67 @@ try {
                         $smtp_config['port'], 
                         $smtp_config['secure']
                     );
-
-                    $link = $frontend_url . "?view=reset&token=" . $token;
                     
-                    $subject = "Reset Password - SIM KEPK";
+                    $subject = "Permintaan Reset Password - User: " . $user['name'];
                     
                     $body = "
-                        <html>
-                        <head>
-                          <style>
-                            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                            .btn { background:#003B73; color:white; padding:10px 20px; text-decoration:none; border-radius:5px; display:inline-block; font-weight:bold; }
-                            .footer { font-size:12px; color:#777; margin-top:20px; border-top:1px solid #eee; padding-top:10px; }
-                          </style>
-                        </head>
-                        <body>
-                            <h3>Halo, {$user['name']}</h3>
-                            <p>Kami menerima permintaan untuk mereset password akun SIM KEPK Anda.</p>
-                            <p>Silakan klik tombol di bawah ini untuk membuat password baru:</p>
-                            <p style='margin:20px 0;'><a href='$link' class='btn'>Reset Password</a></p>
-                            <div class='footer'>
-                                <p>Jika tombol tidak berfungsi, salin link ini ke browser Anda:<br/>$link</p>
-                                <p>Link ini berlaku selama 1 jam.</p>
-                                <p>Jika Anda tidak merasa meminta reset password, abaikan email ini.</p>
-                            </div>
-                        </body>
-                        </html>
+                        <h3>Permintaan Reset Password</h3>
+                        <p>Seorang pengguna meminta reset password:</p>
+                        <ul>
+                           <li><strong>Nama:</strong> {$user['name']}</li>
+                           <li><strong>NIP/NIM/NIK:</strong> {$user['identity_number']}</li>
+                           <li><strong>Institusi:</strong> {$user['institution']}</li>
+                           <li><strong>Email User:</strong> {$user['email']}</li>
+                        </ul>
+                        <p>Silakan login ke Dashboard Admin > Manajemen User untuk mereset password pengguna ini secara manual.</p>
                     ";
 
-                    $mailer->send($email, $subject, $body, $smtp_config['from_name']);
+                    // Kirim ke email Admin (yang disetting di config)
+                    $mailer->send($smtp_config['username'], $subject, $body, "Sistem SIM-KEPK");
                     
-                    $response = ["status" => "success", "message" => "Link reset password telah dikirim ke email Anda. Cek Folder Inbox/Spam."];
+                    $response = ["status" => "success", "message" => "Permintaan terkirim. Admin akan memproses reset password Anda."];
 
                 } catch (Exception $e) {
-                    $response = ["status" => "error", "message" => "Gagal mengirim email: " . $e->getMessage()];
+                    // Fallback jika email gagal, tetap beri pesan sukses ke user agar tidak panik (opsional), 
+                    // tapi di sini kita jujur error agar bisa debug
+                    $response = ["status" => "error", "message" => "Gagal mengirim notifikasi ke Admin. Silakan hubungi sekretariat."];
                 }
 
             } else {
-                $response = ["status" => "error", "message" => "Email tidak terdaftar dalam sistem."];
+                $response = ["status" => "error", "message" => "Nomor Identitas (NIM/NIP/NIK) tidak ditemukan."];
             }
+            break;
+            
+        case 'adminResetUserPassword':
+            // Fitur Admin Reset Manual
+            if (!isset($payload['userId']) || !isset($payload['newPassword'])) {
+                throw new Exception("Parameter tidak lengkap.");
+            }
+            
+            $stmt = $conn->prepare("UPDATE users SET password = :pass WHERE id = :id");
+            $stmt->execute([':pass' => $payload['newPassword'], ':id' => $payload['userId']]);
+            
+            $response = ["status" => "success", "message" => "Password pengguna berhasil direset."];
             break;
 
         case 'reset_password':
+            // LEGACY / TOKEN BASED (Masih disimpan jika Admin ingin kirim link manual via email pribadi)
             $token = $payload['token'];
             $newPassword = $payload['newPassword'];
 
-            // 1. Validasi Token
             $stmt = $conn->prepare("SELECT email FROM password_resets WHERE token = :token AND expires_at > NOW() LIMIT 1");
             $stmt->execute([':token' => $token]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($row) {
-                // 2. Update Password User
                 $email = $row['email'];
                 $upd = $conn->prepare("UPDATE users SET password = :pass WHERE email = :email");
                 $upd->execute([':pass' => $newPassword, ':email' => $email]);
 
-                // 3. Hapus Token
                 $del = $conn->prepare("DELETE FROM password_resets WHERE email = :email");
                 $del->execute([':email' => $email]);
 
-                $response = ["status" => "success", "message" => "Password berhasil diubah. Silakan login dengan password baru."];
+                $response = ["status" => "success", "message" => "Password berhasil diubah."];
             } else {
                 $response = ["status" => "error", "message" => "Link reset tidak valid atau sudah kadaluarsa."];
             }

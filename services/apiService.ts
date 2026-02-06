@@ -105,12 +105,17 @@ export const apiService = {
       return await postData('updateAdminProfile', { id, email, currentPassword, newPassword });
   },
 
-  // NEW: Forgot Password
-  forgotPassword: async (email: string) => {
-    return await postData('forgot_password', { email });
+  // UPDATE: Request Password Reset via NIP/NIK (Notifikasi ke Admin)
+  forgotPassword: async (identityNumber: string) => {
+    return await postData('forgot_password', { identityNumber });
   },
 
-  // NEW: Reset Password
+  // Manual Reset Password (By Admin)
+  adminResetUserPassword: async (userId: string, newPassword: string) => {
+      return await postData('adminResetUserPassword', { userId, newPassword });
+  },
+
+  // NEW: Reset Password (via Token - Legacy/Opsional jika admin mau kirim link manual)
   resetPassword: async (token: string, newPassword: string) => {
     return await postData('reset_password', { token, newPassword });
   },
