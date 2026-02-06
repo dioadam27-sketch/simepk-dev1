@@ -1,9 +1,9 @@
--- PETUNJUK KHUSUS CPANEL:
--- 1. Buat database manual di cPanel (Menu MySQL Databases), misal: 'username_simkepk'
--- 2. Buka phpMyAdmin, KLIK database tersebut di panel kiri.
--- 3. Baru jalankan (Import/SQL) script di bawah ini.
+-- ==========================================
+-- QUERY PEMBARUAN DATABASE SIM KEPK
+-- Jalankan script ini di phpMyAdmin (Tab SQL)
+-- ==========================================
 
--- Tabel Users
+-- 1. TABEL USERS
 CREATE TABLE IF NOT EXISTS users (
     id VARCHAR(50) PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
@@ -11,13 +11,13 @@ CREATE TABLE IF NOT EXISTS users (
     role VARCHAR(20) NOT NULL, -- researcher, reviewer, admin
     institution VARCHAR(150),
     status VARCHAR(20) DEFAULT 'pending', -- active, pending, rejected, suspended
-    password VARCHAR(255) NOT NULL, -- Disarankan menggunakan Hash di production
+    password VARCHAR(255) NOT NULL,
     joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     identity_number VARCHAR(50),
     phone VARCHAR(20)
 );
 
--- Tabel Submissions (Pengajuan)
+-- 2. TABEL SUBMISSIONS
 CREATE TABLE IF NOT EXISTS submissions (
     id VARCHAR(50) PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
@@ -26,21 +26,21 @@ CREATE TABLE IF NOT EXISTS submissions (
     institution VARCHAR(150),
     description TEXT,
     status VARCHAR(50),
-    documents LONGTEXT, -- Menyimpan JSON Array dokumen
-    self_assessment LONGTEXT, -- Menyimpan JSON Array assessment
+    documents LONGTEXT, -- JSON
+    self_assessment LONGTEXT, -- JSON
     submission_date DATE,
     approval_date DATE,
     feedback TEXT,
-    progress_reports LONGTEXT, -- Menyimpan JSON Array laporan
-    certificate_url VARCHAR(255), -- New Column for uploaded certificate
-    team_members LONGTEXT -- New Column for Anggota Peneliti (JSON)
+    progress_reports LONGTEXT, -- JSON
+    certificate_url VARCHAR(255), -- Kolom Baru
+    team_members LONGTEXT -- Kolom Baru
 );
 
--- UPDATE STRUKTUR TABEL (JIKA TABEL SUDAH ADA SEBELUMNYA)
--- Jalankan perintah di bawah ini jika Anda mengalami error saat submit
--- Gunakan "IGNORE" atau cek manual di struktur tabel jika sudah ada.
+-- 3. SAFE MIGRATION (Update Struktur Tabel Otomatis)
+-- Script ini aman dijalankan berulang kali. 
+-- Hanya akan menambahkan kolom jika kolom tersebut BELUM ADA.
 
--- Pastikan kolom certificate_url ada
+-- Cek & Tambah kolom 'certificate_url'
 SET @dbname = DATABASE();
 SET @tablename = "submissions";
 SET @columnname = "certificate_url";
@@ -59,7 +59,7 @@ PREPARE alterIfNotExists FROM @preparedStatement;
 EXECUTE alterIfNotExists;
 DEALLOCATE PREPARE alterIfNotExists;
 
--- Pastikan kolom team_members ada
+-- Cek & Tambah kolom 'team_members'
 SET @columnname = "team_members";
 SET @preparedStatement = (SELECT IF(
   (
@@ -76,15 +76,14 @@ PREPARE alterIfNotExists FROM @preparedStatement;
 EXECUTE alterIfNotExists;
 DEALLOCATE PREPARE alterIfNotExists;
 
-
--- Tabel Config (Master Dokumen)
+-- 4. TABEL CONFIG (Master Dokumen)
 CREATE TABLE IF NOT EXISTS config (
     id VARCHAR(50) PRIMARY KEY,
     label VARCHAR(150) NOT NULL,
     is_required TINYINT(1) DEFAULT 1
 );
 
--- Tabel Password Resets (BARU)
+-- 5. TABEL PASSWORD RESETS
 CREATE TABLE IF NOT EXISTS password_resets (
     email VARCHAR(100) NOT NULL,
     token VARCHAR(100) NOT NULL,
@@ -93,14 +92,19 @@ CREATE TABLE IF NOT EXISTS password_resets (
     KEY(token)
 );
 
--- Data Awal (Seeding) untuk Config
+-- 6. DATA DEFAULT (SEEDING)
+
+-- Default Dokumen Persyaratan
 INSERT IGNORE INTO config (id, label, is_required) VALUES 
 ('protocol', 'Protokol Lengkap (PDF)', 1),
 ('consent', 'Informed Consent / PSP', 1);
 
--- Data Awal Admin
--- Username (Email): admin
+-- Default Akun Administrator
+-- Username: admin
 -- Password: admin
 INSERT INTO users (id, name, email, role, institution, status, password, joined_at) 
 VALUES ('ADM-001', 'Administrator Utama', 'admin', 'admin', 'Sekretariat KEPK', 'active', 'admin', NOW())
-ON DUPLICATE KEY UPDATE password = 'admin';
+ON DUPLICATE KEY UPDATE 
+    password = 'admin', 
+    role = 'admin', 
+    status = 'active';

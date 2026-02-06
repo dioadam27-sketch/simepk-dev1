@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { UserRole } from '../types';
 import { ShieldCheck, User, ArrowRight, Lock, Mail, Building, AlertCircle, Send, CreditCard, Phone, ChevronLeft, Clock, CheckCircle } from 'lucide-react';
@@ -114,7 +113,7 @@ export const Register: React.FC<RegisterProps> = ({ onRegister, onLoginClick }) 
               <ShieldCheck className="w-4 h-4 mr-2"/> Status: Menunggu Persetujuan Admin
             </h4>
             <p className="text-sm text-slate-700 leading-relaxed">
-              Admin KEPK akan memvalidasi data (NIDN/NIK & Institusi) Anda. Proses ini biasanya memakan waktu 1x24 jam kerja.
+              Admin KEPK akan memvalidasi data (NIM/NIK & Institusi) Anda. Proses ini biasanya memakan waktu 1x24 jam kerja.
             </p>
             <div className="mt-3 text-xs text-slate-500 italic border-t border-blue-200 pt-2">
               *Anda belum dapat login hingga akun diaktifkan (Status: Active).
@@ -162,7 +161,7 @@ export const Register: React.FC<RegisterProps> = ({ onRegister, onLoginClick }) 
               </h2>
               <p className="text-blue-100 text-sm leading-relaxed mb-6">
                 {role === 'researcher' 
-                  ? 'Silakan lengkapi biodata Anda dengan benar sesuai data akademik (NIDN/NIM) untuk keperluan pengajuan Ethical Clearance.'
+                  ? 'Silakan lengkapi biodata Anda dengan benar sesuai data akademik (NIM) atau KTP (NIK) untuk keperluan pengajuan Ethical Clearance.'
                   : 'Bergabunglah sebagai penelaah etik. Akun memerlukan validasi ketat dari Admin KEPK.'}
               </p>
               
@@ -244,7 +243,7 @@ export const Register: React.FC<RegisterProps> = ({ onRegister, onLoginClick }) 
              {/* 1. Identity Number */}
              <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
-                NIDN / NIK / NIM <span className="text-red-500">*</span>
+                NIM / NIP / NIK (Username) <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">

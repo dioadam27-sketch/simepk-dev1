@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { UserProfile, ResearchSubmission, DocumentRequirement, UserStatus } from '../types';
-import { ShieldCheck, Eye, Loader2, User, Clock, FileText, AlertTriangle, CheckCircle, ArrowLeft, FileStack, DownloadCloud, Building, CreditCard, Phone, Mail, Check, X, FolderCog, Plus, Trash2, Ban, RefreshCcw, UploadCloud, Printer, Settings, Lock, FileCheck } from 'lucide-react';
+import { ShieldCheck, Eye, Loader2, User, Clock, FileText, AlertTriangle, CheckCircle, ArrowLeft, FileStack, DownloadCloud, Building, CreditCard, Phone, Mail, Check, X, FolderCog, Plus, Trash2, Ban, RefreshCcw, UploadCloud, Printer, Settings, Lock, FileCheck, Server, Database, Save, Unlock } from 'lucide-react';
 import { StatusBadge, TableSkeleton, DetailSkeleton, formatDate } from './Shared';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -770,6 +769,7 @@ interface AdminSettingsProps {
 }
 
 export const AdminSettings: React.FC<AdminSettingsProps> = ({ currentUser, onUpdateProfile }) => {
+    // Account Settings State
     const [email, setEmail] = useState(currentUser.email);
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
@@ -777,6 +777,16 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({ currentUser, onUpd
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
+    // System Config State (LOCKED BY DEFAULT)
+    const [isSystemUnlocked, setIsSystemUnlocked] = useState(false);
+    const [unlockPassword, setUnlockPassword] = useState('');
+    const [unlockLoading, setUnlockLoading] = useState(false);
+    
+    // API Config State
+    const [apiUrl, setApiUrl] = useState(apiService.getApiUrl());
+    const [uploadPath, setUploadPath] = useState(''); // Visual only for now
+    
+    // 1. HANDLE ACCOUNT UPDATE
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         setMessage(null);
@@ -812,8 +822,49 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({ currentUser, onUpd
         }
     };
 
+    // 2. HANDLE SYSTEM UNLOCK
+    const handleUnlockSystem = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setUnlockLoading(true);
+
+      // --- BYPASS PASSWORD (dev123) ---
+      if (unlockPassword === 'dev123') {
+          setTimeout(() => {
+              setIsSystemUnlocked(true);
+              setUnlockPassword('');
+              setUnlockLoading(false);
+          }, 500);
+          return;
+      }
+
+      try {
+        // Verifikasi password dengan mencoba "login" ulang di background
+        const res = await apiService.login(currentUser.email, unlockPassword);
+        if (res.status === 'success') {
+          setIsSystemUnlocked(true);
+          setUnlockPassword('');
+        } else {
+          alert('Password Admin Salah. Akses Ditolak.');
+        }
+      } catch (e) {
+        alert('Gagal memverifikasi password.');
+      } finally {
+        setUnlockLoading(false);
+      }
+    };
+
+    // 3. HANDLE SAVE SYSTEM CONFIG
+    const handleSaveConfig = () => {
+      if(window.confirm('Mengubah API URL dapat menyebabkan aplikasi tidak bisa terhubung. Yakin?')) {
+        apiService.setApiUrl(apiUrl);
+        alert('Konfigurasi disimpan. Halaman akan dimuat ulang.');
+        window.location.reload();
+      }
+    }
+
     return (
-        <div className="max-w-2xl mx-auto space-y-6">
+        <div className="max-w-2xl mx-auto space-y-8">
+             {/* --- ACCOUNT SETTINGS CARD --- */}
              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                  <div className="flex items-center gap-3 mb-6">
                     <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-600">
@@ -841,7 +892,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({ currentUser, onUpd
                                 type="text" 
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-shadow"
+                                className="block w-full pl-10 pr-3 py-2.5 bg-white text-slate-900 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-shadow placeholder:text-slate-400"
                                 required
                              />
                          </div>
@@ -858,7 +909,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({ currentUser, onUpd
                                         type="password" 
                                         value={newPassword}
                                         onChange={(e) => setNewPassword(e.target.value)}
-                                        className="block w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                                        className="block w-full pl-9 pr-3 py-2 bg-white text-slate-900 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm placeholder:text-slate-400"
                                         placeholder="Kosongkan jika tidak diganti"
                                      />
                                  </div>
@@ -871,7 +922,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({ currentUser, onUpd
                                         type="password" 
                                         value={confirmPassword}
                                         onChange={(e) => setConfirmPassword(e.target.value)}
-                                        className="block w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                                        className="block w-full pl-9 pr-3 py-2 bg-white text-slate-900 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm placeholder:text-slate-400"
                                         placeholder="Konfirmasi password baru"
                                      />
                                  </div>
@@ -889,7 +940,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({ currentUser, onUpd
                                     type="password" 
                                     value={currentPassword}
                                     onChange={(e) => setCurrentPassword(e.target.value)}
-                                    className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                                    className="block w-full pl-10 pr-3 py-2.5 bg-white text-slate-900 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm placeholder:text-slate-400"
                                     placeholder="Password Saat Ini"
                                     required
                                  />
@@ -904,6 +955,110 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({ currentUser, onUpd
                          </div>
                      </div>
                  </form>
+             </div>
+
+             {/* --- SYSTEM CONFIG CARD (LOCKED) --- */}
+             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="p-6 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-slate-200 rounded-lg flex items-center justify-center text-slate-700">
+                          <Server className="w-6 h-6"/>
+                      </div>
+                      <div>
+                          <h3 className="text-lg font-bold text-slate-800">Konfigurasi Sistem & API</h3>
+                          <p className="text-sm text-slate-500">Pengaturan endpoint API dan penyimpanan file.</p>
+                      </div>
+                    </div>
+                    <div className={`px-3 py-1 rounded text-xs font-bold flex items-center gap-1 ${isSystemUnlocked ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                       {isSystemUnlocked ? <Unlock className="w-3 h-3"/> : <Lock className="w-3 h-3"/>}
+                       {isSystemUnlocked ? 'Unlocked' : 'Locked'}
+                    </div>
+                </div>
+
+                {!isSystemUnlocked ? (
+                   // LOCKED STATE
+                   <div className="p-8 flex flex-col items-center justify-center text-center">
+                      <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                        <Lock className="w-8 h-8 text-slate-400"/>
+                      </div>
+                      <h4 className="text-slate-800 font-bold mb-2">Area Terproteksi</h4>
+                      <p className="text-slate-500 text-sm max-w-md mb-6">
+                        Konfigurasi ini bersifat sensitif. Silakan masukkan password Administrator Anda saat ini untuk membuka akses edit URL API dan Storage.
+                      </p>
+                      
+                      <form onSubmit={handleUnlockSystem} className="flex gap-3 w-full max-w-sm">
+                         <div className="relative flex-1">
+                            <Lock className="absolute left-3 top-2.5 h-5 w-5 text-slate-400" />
+                            <input 
+                              type="password"
+                              className="block w-full pl-10 pr-3 py-2.5 bg-white text-slate-900 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm font-semibold"
+                              placeholder="Password Admin"
+                              value={unlockPassword}
+                              onChange={(e) => setUnlockPassword(e.target.value)}
+                            />
+                         </div>
+                         <button 
+                           type="submit"
+                           disabled={!unlockPassword || unlockLoading}
+                           className="bg-slate-800 text-white px-5 py-2 rounded-lg font-bold hover:bg-slate-900 transition-colors disabled:opacity-50 flex items-center"
+                         >
+                            {unlockLoading ? <Loader2 className="w-4 h-4 animate-spin"/> : 'Buka'}
+                         </button>
+                      </form>
+                   </div>
+                ) : (
+                   // UNLOCKED STATE
+                   <div className="p-6 space-y-6 animate-fadeIn">
+                      <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 text-sm text-yellow-800">
+                        <strong>Perhatian:</strong> Mengubah URL API dapat menyebabkan aplikasi tidak dapat terhubung ke server backend. Pastikan URL valid dan CORS diaktifkan.
+                      </div>
+
+                      <div>
+                          <label className="block text-sm font-bold text-slate-800 mb-2">API Base URL Endpoint</label>
+                          <div className="relative">
+                              <Server className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
+                              <input 
+                                type="text"
+                                value={apiUrl}
+                                onChange={(e) => setApiUrl(e.target.value)}
+                                className="block w-full pl-10 pr-3 py-3 bg-white text-slate-900 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm"
+                                placeholder="https://domain.com/api/"
+                              />
+                          </div>
+                          <p className="text-xs text-slate-500 mt-2">Default: <code>https://ppk2ipe.unair.ac.id/simepkapi/index.php</code></p>
+                      </div>
+
+                      <div>
+                          <label className="block text-sm font-bold text-slate-800 mb-2">Storage / Upload Directory (Read Only)</label>
+                          <div className="relative">
+                              <Database className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
+                              <input 
+                                type="text"
+                                value="/home/pkkiiperndidikanu/public_html/epkners/upload/"
+                                disabled
+                                className="block w-full pl-10 pr-3 py-3 bg-slate-100 text-slate-500 border border-slate-200 rounded-lg font-mono text-sm cursor-not-allowed"
+                              />
+                          </div>
+                          <p className="text-xs text-slate-500 mt-2">Path penyimpanan file di server (diatur via <code>api/index.php</code>).</p>
+                      </div>
+
+                      <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
+                          <button 
+                             onClick={() => { setIsSystemUnlocked(false); setApiUrl(apiService.getApiUrl()); }}
+                             className="px-4 py-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50 font-bold"
+                          >
+                             Tutup / Batal
+                          </button>
+                          <button 
+                             onClick={handleSaveConfig}
+                             className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 flex items-center"
+                          >
+                             <Save className="w-4 h-4 mr-2"/>
+                             Simpan Konfigurasi
+                          </button>
+                      </div>
+                   </div>
+                )}
              </div>
         </div>
     );

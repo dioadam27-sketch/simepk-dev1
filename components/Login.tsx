@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { UserRole } from '../types';
-import { ShieldCheck, User, ArrowRight, Lock, Mail, AlertCircle, Settings, ChevronLeft, Users, AlertTriangle, Home, HelpCircle, Send, CheckCircle } from 'lucide-react';
+import { ShieldCheck, User, ArrowRight, Lock, Mail, AlertCircle, Settings, ChevronLeft, Users, AlertTriangle, Home, HelpCircle, Send, CheckCircle, CreditCard } from 'lucide-react';
 import { apiService } from '../services/apiService';
 
 interface LoginProps {
@@ -18,7 +17,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick, onBackTo
 
   // State for User Login (Researcher/Reviewer)
   const [activeUserRole, setActiveUserRole] = useState<UserRole>('researcher');
-  const [userEmail, setUserEmail] = useState('');
+  const [userEmail, setUserEmail] = useState(''); // Variable kept as 'userEmail' but acts as 'identifier'
   const [userPassword, setUserPassword] = useState('');
   
   // State for Admin Login
@@ -38,14 +37,17 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick, onBackTo
     setError(null);
     setIsLoading(true);
     
+    // Trim input untuk memastikan tidak ada spasi di awal/akhir
+    const cleanIdentifier = userEmail.trim();
+
     try {
       // Panggil fungsi onLogin yang diteruskan dari App.tsx
-      const result = await onLogin(userEmail, userPassword, 'user', activeUserRole);
+      const result = await onLogin(cleanIdentifier, userPassword, 'user', activeUserRole);
       
       if (!result.success) {
         setError({ 
           section: 'user', 
-          msg: result.message || 'Email atau Password salah, atau akun belum aktif.' 
+          msg: result.message || 'NIM/NIP/NIK atau Password salah, atau akun belum aktif.' 
         });
       }
     } catch (err) {
@@ -61,7 +63,9 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick, onBackTo
     setIsLoading(true);
 
     try {
-      const result = await onLogin(adminEmail, adminPassword, 'admin');
+      // Trim input admin juga
+      const cleanAdminId = adminEmail.trim();
+      const result = await onLogin(cleanAdminId, adminPassword, 'admin');
       
       if (!result.success) {
         setError({ 
@@ -233,13 +237,15 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick, onBackTo
 
             <form onSubmit={handleUserLogin} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Email / Username</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
+                  Username (NIM / NIP / NIK)
+                </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-2.5 h-5 w-5 text-slate-400" />
+                  <CreditCard className="absolute left-3 top-2.5 h-5 w-5 text-slate-400" />
                   <input
                     type="text"
                     className="block w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#FFC107] focus:border-transparent outline-none text-slate-800 font-medium placeholder:text-slate-400"
-                    placeholder="nama@institusi.ac.id"
+                    placeholder="Masukkan NIM / NIP / NIK"
                     value={userEmail}
                     onChange={(e) => setUserEmail(e.target.value)}
                   />
@@ -383,14 +389,11 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick, onBackTo
         <div className="w-full max-w-md bg-[#05111D] border border-slate-800 rounded-2xl shadow-2xl overflow-hidden relative animate-fadeIn">
           {/* Subtle glow */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/5 rounded-full blur-3xl pointer-events-none"></div>
-          
+
           <button 
             type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              setShowBackConfirm(true);
-            }}
-            className="absolute top-4 left-4 flex items-center gap-1 px-3 py-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all z-20 font-bold text-sm cursor-pointer"
+            onClick={() => setShowBackConfirm(true)}
+            className="absolute top-4 left-4 flex items-center gap-1 px-3 py-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-all font-bold text-sm z-20 cursor-pointer"
           >
             <ChevronLeft className="w-5 h-5 stroke-[3]" />
             Kembali
@@ -398,15 +401,15 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick, onBackTo
 
           <div className="p-8 md:p-10 pt-16 relative z-10">
             <div className="text-center mb-8">
-              <div className="w-16 h-16 bg-slate-800 text-[#FFC107] rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-700">
-                <Settings className="w-8 h-8" />
+              <div className="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-700 shadow-xl">
+                 <Settings className="w-10 h-10 text-[#FFC107] animate-pulse-slow"/>
               </div>
               <h2 className="text-2xl font-bold text-white">Administrator</h2>
-              <p className="text-slate-400 text-sm mt-1">Manajemen Sistem KEPK</p>
+              <p className="text-slate-400 text-sm mt-1">Halaman khusus pengelolaan sistem</p>
             </div>
 
             {error?.section === 'admin' && (
-              <div className="mb-4 p-3 bg-red-900/30 border border-red-800 rounded-lg flex items-center text-sm text-red-200 animate-fadeIn">
+              <div className="mb-4 p-3 bg-red-900/30 border border-red-800 rounded-lg flex items-center text-sm text-red-400 animate-fadeIn">
                 <AlertCircle className="w-4 h-4 mr-2 shrink-0" />
                 {error.msg}
               </div>
@@ -414,25 +417,26 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick, onBackTo
 
             <form onSubmit={handleAdminLogin} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Admin Username</label>
+                <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Username / Email Admin</label>
                 <div className="relative">
                   <User className="absolute left-3 top-2.5 h-5 w-5 text-slate-500" />
                   <input
                     type="text"
-                    className="block w-full pl-10 pr-3 py-2.5 bg-[#0F1E2E] border border-slate-700 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm text-white placeholder-slate-600 transition-colors"
-                    placeholder="Username"
+                    className="block w-full pl-10 pr-3 py-2.5 bg-[#0A1625] border border-slate-700 rounded-lg focus:ring-2 focus:ring-[#FFC107] focus:border-transparent outline-none text-white font-medium placeholder:text-slate-600"
+                    placeholder="admin"
                     value={adminEmail}
                     onChange={(e) => setAdminEmail(e.target.value)}
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Secret Key / Password</label>
+                <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Password</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-2.5 h-5 w-5 text-slate-500" />
                   <input
                     type="password"
-                    className="block w-full pl-10 pr-3 py-2.5 bg-[#0F1E2E] border border-slate-700 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm text-white placeholder-slate-600 transition-colors"
+                    className="block w-full pl-10 pr-3 py-2.5 bg-[#0A1625] border border-slate-700 rounded-lg focus:ring-2 focus:ring-[#FFC107] focus:border-transparent outline-none text-white font-medium placeholder:text-slate-600"
+                    placeholder="••••••••"
                     value={adminPassword}
                     onChange={(e) => setAdminPassword(e.target.value)}
                   />
@@ -441,10 +445,10 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick, onBackTo
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full mt-4 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg bg-[#003B73] hover:bg-blue-800 text-white font-bold transition-all shadow-lg shadow-blue-900/20 border border-blue-800/50"
+                className="w-full mt-4 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg bg-[#FFC107] text-slate-900 font-bold hover:bg-yellow-400 transition-colors shadow-lg shadow-yellow-900/20"
               >
-                {isLoading ? <span className="animate-pulse">Verifikasi...</span> : (
-                  <><span>Masuk Admin</span> <Settings className="w-4 h-4" /></>
+                {isLoading ? <span className="animate-pulse">Memverifikasi...</span> : (
+                  <><span>Masuk Dashboard</span> <ArrowRight className="w-4 h-4" /></>
                 )}
               </button>
             </form>

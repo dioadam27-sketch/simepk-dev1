@@ -80,10 +80,14 @@ try {
         // 1. AUTHENTICATION & PASSWORD RESET
         // ==========================================
         case 'login':
-            // Cek user berdasarkan email & password
-            $stmt = $conn->prepare("SELECT * FROM users WHERE email = :email AND password = :password LIMIT 1");
-            $stmt->bindParam(':email', $payload['email']);
-            $stmt->bindParam(':password', $payload['password']); // Note: Untuk produksi disarankan hash password
+            // UPDATE: Login support Email OR Identity Number (NIM/NIK)
+            // Menggunakan trim() untuk membersihkan input dari spasi
+            $inputParam = isset($payload['email']) ? trim($payload['email']) : '';
+            $passwordParam = isset($payload['password']) ? $payload['password'] : '';
+
+            $stmt = $conn->prepare("SELECT * FROM users WHERE (email = :input OR identity_number = :input) AND password = :password LIMIT 1");
+            $stmt->bindParam(':input', $inputParam); 
+            $stmt->bindParam(':password', $passwordParam); 
             $stmt->execute();
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -105,17 +109,23 @@ try {
                     $response = ["status" => "success", "data" => $userData];
                 }
             } else {
-                $response = ["status" => "error", "message" => "Email atau password salah."];
+                $response = ["status" => "error", "message" => "Username (NIM/NIP/NIK) atau password salah."];
             }
             break;
 
         case 'register':
-            // Cek duplikasi email
-            $check = $conn->prepare("SELECT id FROM users WHERE email = :email");
-            $check->bindParam(':email', $payload['email']);
+            // UPDATE: Cek duplikasi Email ATAU Identity Number
+            // Trim data input
+            $emailClean = trim($payload['email']);
+            $idnClean = isset($payload['identityNumber']) ? trim($payload['identityNumber']) : '';
+
+            $check = $conn->prepare("SELECT id FROM users WHERE email = :email OR identity_number = :idn");
+            $check->bindParam(':email', $emailClean);
+            $check->bindParam(':idn', $idnClean);
             $check->execute();
+            
             if ($check->rowCount() > 0) {
-                $response = ["status" => "error", "message" => "Email tersebut sudah terdaftar."];
+                $response = ["status" => "error", "message" => "Email atau NIDN/NIK/NIM tersebut sudah terdaftar."];
             } else {
                 $id = 'USR-' . mt_rand(10000, 99999);
                 // Insert user baru dengan status 'pending'
@@ -124,11 +134,11 @@ try {
                 $stmt->execute([
                     ':id' => $id,
                     ':name' => $payload['name'],
-                    ':email' => $payload['email'],
+                    ':email' => $emailClean,
                     ':role' => $payload['role'],
                     ':inst' => $payload['institution'],
                     ':pass' => $payload['password'], 
-                    ':idn' => isset($payload['identityNumber']) ? $payload['identityNumber'] : '',
+                    ':idn' => $idnClean,
                     ':phone' => isset($payload['phone']) ? $payload['phone'] : ''
                 ]);
                 $response = ["status" => "success", "message" => "Registrasi berhasil. Tunggu validasi Admin."];
@@ -137,7 +147,7 @@ try {
 
         case 'forgot_password':
             // 1. Cek Email
-            $email = $payload['email'];
+            $email = trim($payload['email']);
             $stmt = $conn->prepare("SELECT name FROM users WHERE email = :email LIMIT 1");
             $stmt->execute([':email' => $email]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -169,7 +179,6 @@ try {
                     
                     $subject = "Reset Password - SIM KEPK";
                     
-                    // Body Email HTML yang lebih rapi
                     $body = "
                         <html>
                         <head>
@@ -202,7 +211,6 @@ try {
                 }
 
             } else {
-                // Jangan beritahu jika email tidak ditemukan untuk keamanan (atau beritahu generic)
                 $response = ["status" => "error", "message" => "Email tidak terdaftar dalam sistem."];
             }
             break;
@@ -289,7 +297,7 @@ try {
                         $url = uploadBase64File($doc['content'], $doc['name'], $uploadDir, $baseUrl);
                         
                         $doc['url'] = $url ? $url : '';
-                        unset($doc['content']); // Hapus string base64 agar database tidak berat
+                        unset($doc['content']); 
                     }
                     $processedDocs[] = $doc;
                 }
@@ -316,20 +324,16 @@ try {
             break;
 
         case 'editSubmission':
-            // Mirip create, tapi UPDATE. ID harus ada.
             if (!isset($payload['id'])) throw new Exception("ID required for editing");
 
             $processedDocs = [];
-            // Proses dokumen (campuran antara file baru yg ada content base64 dan file lama yg cuma URL)
             if (isset($payload['documents']) && is_array($payload['documents'])) {
                 foreach ($payload['documents'] as $doc) {
                     if (isset($doc['content']) && !empty($doc['content'])) {
-                        // File Baru
                         $url = uploadBase64File($doc['content'], $doc['name'], $uploadDir, $baseUrl);
                         $doc['url'] = $url ? $url : '';
                         unset($doc['content']);
                     }
-                    // File lama sudah punya URL, biarkan saja
                     $processedDocs[] = $doc;
                 }
             }
@@ -356,8 +360,6 @@ try {
                 ':id' => $payload['id']
             ]);
 
-            // Jika status 'revision_needed', kembalikan ke 'submitted' atau 'under_review' jika diinginkan?
-            // Biasanya user yang edit revisi akan mengubah status kembali ke 'submitted' agar admin tau
             if (isset($payload['status']) && $payload['status'] === 'submitted') {
                  $stmtStatus = $conn->prepare("UPDATE submissions SET status = 'submitted' WHERE id = :id");
                  $stmtStatus->execute([':id' => $payload['id']]);
@@ -370,7 +372,6 @@ try {
             $sql = "SELECT * FROM submissions";
             $params = [];
 
-            // Jika role Researcher, filter hanya milik dia sendiri
             if (isset($payload['role']) && $payload['role'] === 'researcher') {
                 $sql .= " WHERE researcher_email = :email";
                 $params[':email'] = $payload['email'];
@@ -384,7 +385,6 @@ try {
             
             $data = [];
             foreach ($rows as $row) {
-                // Decode JSON fields dengan penanganan error (jika null, default ke empty array)
                 $documents = json_decode($row['documents'] ?? '[]', true) ?: [];
                 $selfAssessment = json_decode($row['self_assessment'] ?? '[]', true) ?: [];
                 $progressReports = json_decode($row['progress_reports'] ?? '[]', true) ?: [];
@@ -412,7 +412,6 @@ try {
             break;
 
         case 'updateSubmissionStatus':
-            // Update Status, Feedback, atau Approval Date
             $sql = "UPDATE submissions SET status = :status";
             $params = [':status' => $payload['status'], ':id' => $payload['id']];
             
@@ -434,11 +433,9 @@ try {
 
         case 'uploadCertificate':
             if (isset($payload['content']) && !empty($payload['content'])) {
-                // Upload File
                 $url = uploadBase64File($payload['content'], $payload['name'], $uploadDir, $baseUrl);
                 
                 if ($url) {
-                    // Update Database
                     $stmt = $conn->prepare("UPDATE submissions SET certificate_url = :url WHERE id = :id");
                     $stmt->execute([':url' => $url, ':id' => $payload['id']]);
                     $response = ["status" => "success", "url" => $url];
@@ -526,7 +523,6 @@ try {
             $response = ["status" => "error", "message" => "Unknown action"];
     }
 } catch (Exception $e) {
-    // Tampilkan pesan error spesifik untuk debugging
     $response = ["status" => "error", "message" => $e->getMessage()];
 }
 

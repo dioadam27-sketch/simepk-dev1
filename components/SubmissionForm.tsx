@@ -260,7 +260,7 @@ export const SubmissionForm: React.FC<SubmissionFormProps> = ({ onSubmit, onCanc
                 <label className="block text-sm font-medium text-slate-700 mb-1">Judul Protokol</label>
                 <input 
                   type="text" 
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-unair-yellow focus:border-transparent outline-none"
+                  className="w-full px-4 py-2 bg-white text-slate-900 border border-slate-300 rounded-lg focus:ring-2 focus:ring-unair-yellow focus:border-transparent outline-none placeholder:text-slate-400"
                   value={formData.title}
                   onChange={e => setFormData({...formData, title: e.target.value})}
                   placeholder="Contoh: Pengaruh Pemberian Ekstrak Daun Kelor..."
@@ -270,24 +270,26 @@ export const SubmissionForm: React.FC<SubmissionFormProps> = ({ onSubmit, onCanc
                 <label className="block text-sm font-medium text-slate-700 mb-1">Nama Peneliti Utama</label>
                 <input 
                   type="text" 
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-unair-yellow focus:border-transparent outline-none"
+                  className="w-full px-4 py-2 bg-white text-slate-900 border border-slate-300 rounded-lg focus:ring-2 focus:ring-unair-yellow focus:border-transparent outline-none placeholder:text-slate-400"
                   value={formData.researcherName}
                   onChange={e => setFormData({...formData, researcherName: e.target.value})}
+                  placeholder="Nama Lengkap Peneliti"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Institusi/Asal</label>
                 <input 
                   type="text" 
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-unair-yellow focus:border-transparent outline-none"
+                  className="w-full px-4 py-2 bg-white text-slate-900 border border-slate-300 rounded-lg focus:ring-2 focus:ring-unair-yellow focus:border-transparent outline-none placeholder:text-slate-400"
                   value={formData.institution}
                   onChange={e => setFormData({...formData, institution: e.target.value})}
+                  placeholder="Asal Institusi"
                 />
               </div>
               <div className="col-span-2">
                 <label className="block text-sm font-medium text-slate-700 mb-1">Abstrak / Deskripsi Singkat</label>
                 <textarea 
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-unair-yellow focus:border-transparent outline-none h-32"
+                  className="w-full px-4 py-2 bg-white text-slate-900 border border-slate-300 rounded-lg focus:ring-2 focus:ring-unair-yellow focus:border-transparent outline-none h-32 placeholder:text-slate-400"
                   value={formData.description}
                   onChange={e => setFormData({...formData, description: e.target.value})}
                   placeholder="Jelaskan latar belakang, tujuan, dan metode secara singkat..."
@@ -308,21 +310,21 @@ export const SubmissionForm: React.FC<SubmissionFormProps> = ({ onSubmit, onCanc
                          <input 
                             type="text"
                             placeholder="Nama Lengkap" 
-                            className="px-3 py-1.5 border border-slate-300 rounded text-sm"
+                            className="px-3 py-1.5 bg-white text-slate-900 border border-slate-300 rounded text-sm placeholder:text-slate-400 outline-none focus:border-unair-blue"
                             value={member.name}
                             onChange={(e) => updateTeamMember(idx, 'name', e.target.value)}
                          />
                          <input 
                             type="text"
                             placeholder="Peran (e.g. Anggota)" 
-                            className="px-3 py-1.5 border border-slate-300 rounded text-sm"
+                            className="px-3 py-1.5 bg-white text-slate-900 border border-slate-300 rounded text-sm placeholder:text-slate-400 outline-none focus:border-unair-blue"
                             value={member.role}
                             onChange={(e) => updateTeamMember(idx, 'role', e.target.value)}
                          />
                          <input 
                             type="text"
                             placeholder="Institusi (Optional)" 
-                            className="px-3 py-1.5 border border-slate-300 rounded text-sm"
+                            className="px-3 py-1.5 bg-white text-slate-900 border border-slate-300 rounded text-sm placeholder:text-slate-400 outline-none focus:border-unair-blue"
                             value={member.institution || ''}
                             onChange={(e) => updateTeamMember(idx, 'institution', e.target.value)}
                          />
@@ -463,7 +465,7 @@ export const SubmissionForm: React.FC<SubmissionFormProps> = ({ onSubmit, onCanc
                     </div>
                   </div>
                   <textarea 
-                    className="w-full mt-2 px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-unair-yellow focus:border-transparent outline-none text-sm"
+                    className="w-full mt-2 px-4 py-3 bg-white text-slate-900 border border-slate-300 rounded-lg focus:ring-2 focus:ring-unair-yellow focus:border-transparent outline-none text-sm placeholder:text-slate-400"
                     rows={3}
                     placeholder={`Jelaskan pemenuhan standar ${std.standard}...`}
                     value={assessment.find(a => a.id === std.id)?.response}

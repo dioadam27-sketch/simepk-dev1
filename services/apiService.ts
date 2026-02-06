@@ -3,8 +3,19 @@ import { ResearchSubmission, UserProfile, DocumentRequirement, UserRole } from '
 // ============================================================================
 // KONFIGURASI API
 // ============================================================================
-// URL API backend di server cPanel
-const API_URL = 'https://ppk2ipe.unair.ac.id/api/index.php'; 
+// Default URL (Fallback)
+const DEFAULT_API_URL = 'https://ppk2ipe.unair.ac.id/simepkapi/index.php'; 
+
+// Cek LocalStorage apakah ada override URL
+const getStoredApiUrl = () => {
+  try {
+    return localStorage.getItem('SIMKEPK_API_URL') || DEFAULT_API_URL;
+  } catch {
+    return DEFAULT_API_URL;
+  }
+};
+
+let API_URL = getStoredApiUrl();
 // ============================================================================
 
 // Helper untuk POST request
@@ -55,6 +66,19 @@ const getData = async (action: string, params: Record<string, string> = {}) => {
 };
 
 export const apiService = {
+  // --- SYSTEM CONFIG (NEW) ---
+  getApiUrl: () => API_URL,
+  
+  setApiUrl: (url: string) => {
+    localStorage.setItem('SIMKEPK_API_URL', url);
+    API_URL = url;
+  },
+
+  resetApiUrl: () => {
+    localStorage.removeItem('SIMKEPK_API_URL');
+    API_URL = DEFAULT_API_URL;
+  },
+
   // --- USER ---
   login: async (email: string, password: string) => {
     return await postData('login', { email, password });
