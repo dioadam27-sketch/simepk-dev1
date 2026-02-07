@@ -1,4 +1,4 @@
-import { ResearchSubmission, UserProfile, DocumentRequirement, UserRole } from '../types';
+import { ResearchSubmission, UserProfile, DocumentRequirement, UserRole, QuestionnaireQuestion, QuestionnaireResponse } from '../types';
 
 // ============================================================================
 // KONFIGURASI API
@@ -171,5 +171,27 @@ export const apiService = {
 
   deleteConfig: async (id: string) => {
     return await postData('deleteConfig', { id });
+  },
+
+  // --- QUESTIONNAIRE (NEW) ---
+  getQuestions: async (isPublic = false) => {
+    const params = isPublic ? { public: 'true' } : {};
+    return await getData('getQuestions', params);
+  },
+
+  addQuestion: async (text: string, type: 'rating' | 'text' | 'yesno') => {
+    return await postData('addQuestion', { text, type });
+  },
+
+  deleteQuestion: async (id: number) => {
+    return await postData('deleteQuestion', { id });
+  },
+
+  submitQuestionnaire: async (name: string, role: string, answers: { question_id: number; answer: string }[]) => {
+    return await postData('submitQuestionnaire', { name, role, answers });
+  },
+
+  getQuestionnaireResults: async () => {
+    return await getData('getQuestionnaireResults');
   }
 };

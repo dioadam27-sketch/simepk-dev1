@@ -4,6 +4,7 @@ import { SubmissionForm } from './components/SubmissionForm';
 import { Login } from './components/Login';
 import { Register } from './components/Register';
 import { LandingPage } from './components/LandingPage';
+import { Questionnaire } from './components/Questionnaire'; // NEW IMPORT
 import { ResearchSubmission, UserRole, SubmissionStatus, UserProfile, DocumentRequirement, UserStatus } from './types';
 import { apiService } from './services/apiService';
 import { FolderCog, Key, Lock, Loader2, CheckCircle, AlertTriangle, BookOpen, Download } from 'lucide-react';
@@ -17,6 +18,7 @@ import {
   AdminDocumentManagement, 
   AdminSubmissionDetail,
   AdminSettings,
+  AdminQuestionnaireManagement, // NEW IMPORT
   ReviewerDashboard,
   ReviewDetail
 } from './components/AdminModule';
@@ -168,6 +170,9 @@ export default function App() {
   
   // Non-persisted UI states
   const [authView, setAuthView] = useState<'login' | 'register'>('login');
+  // State baru untuk view Kuesioner (Public)
+  const [showQuestionnaire, setShowQuestionnaire] = useState(false);
+  
   const [submissions, setSubmissions] = useState<ResearchSubmission[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [docRequirements, setDocRequirements] = useState<DocumentRequirement[]>(DEFAULT_DOC_REQS);
@@ -457,7 +462,12 @@ export default function App() {
     return <ResetPasswordView token={resetToken} onDone={() => { setResetToken(null); setAuthView('login'); setShowLanding(true); }} />;
   }
 
-  if (showLanding) return <LandingPage onEnterSystem={handleEnterSystem} />;
+  // 2. Check for Public Questionnaire
+  if (showQuestionnaire) {
+      return <Questionnaire onBack={() => setShowQuestionnaire(false)} />;
+  }
+
+  if (showLanding) return <LandingPage onEnterSystem={handleEnterSystem} onOpenQuestionnaire={() => setShowQuestionnaire(true)} />;
   
   if (!isLoggedIn) {
     if (authView === 'register') return <Register onRegister={handleRegister} onLoginClick={() => setAuthView('login')} />;
@@ -552,6 +562,8 @@ export default function App() {
             onDelete={handleDeleteDocRequirement}
           />
         );
+      case 'admin-questionnaire':
+        return <AdminQuestionnaireManagement />;
       
       // SETTINGS & DEFAULT
       case 'admin-settings':

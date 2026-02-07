@@ -101,7 +101,24 @@ CREATE TABLE IF NOT EXISTS admin_logs (
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- 7. DATA DEFAULT (SEEDING)
+-- 7. TABEL PERTANYAAN KUESIONER (BARU)
+CREATE TABLE IF NOT EXISTS questionnaire_questions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    question_text TEXT NOT NULL,
+    question_type VARCHAR(20) NOT NULL, -- 'rating', 'text', 'yesno'
+    is_active TINYINT(1) DEFAULT 1
+);
+
+-- 8. TABEL RESPON KUESIONER (BARU)
+CREATE TABLE IF NOT EXISTS questionnaire_responses (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    respondent_name VARCHAR(100),
+    respondent_role VARCHAR(50),
+    answers_json LONGTEXT, -- Menyimpan array jawaban [{question_id: 1, answer: "5"}]
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 9. DATA DEFAULT (SEEDING)
 
 -- Default Dokumen Persyaratan
 INSERT IGNORE INTO config (id, label, is_required) VALUES 
@@ -111,9 +128,11 @@ INSERT IGNORE INTO config (id, label, is_required) VALUES
 -- Default Akun Administrator
 -- Username: admin
 -- Password: admin
-INSERT INTO users (id, name, email, role, institution, status, password, joined_at) 
-VALUES ('ADM-001', 'Administrator Utama', 'admin', 'admin', 'Sekretariat KEPK', 'active', 'admin', NOW())
-ON DUPLICATE KEY UPDATE 
-    password = 'admin', 
-    role = 'admin', 
-    status = 'active';
+INSERT IGNORE INTO users (id, name, email, role, institution, status, password, joined_at) 
+VALUES ('ADM-001', 'Administrator Utama', 'admin', 'admin', 'Sekretariat KEPK', 'active', 'admin', NOW());
+
+-- Default Pertanyaan Kuesioner
+INSERT IGNORE INTO questionnaire_questions (id, question_text, question_type, is_active) VALUES
+(1, 'Bagaimana kepuasan Anda terhadap layanan SIM KEPK?', 'rating', 1),
+(2, 'Apakah proses pengajuan mudah dipahami?', 'yesno', 1),
+(3, 'Saran dan masukan untuk pengembangan sistem:', 'text', 1);

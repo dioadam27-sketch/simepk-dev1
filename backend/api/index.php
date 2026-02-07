@@ -632,6 +632,69 @@ try {
             $stmt->execute([':id' => $payload['id']]);
             $response = ["status" => "success"];
             break;
+        
+        // ==========================================
+        // 5. QUESTIONNAIRE MANAGEMENT (NEW)
+        // ==========================================
+        
+        // Mengambil daftar pertanyaan (Public & Admin)
+        case 'getQuestions':
+            $sql = "SELECT * FROM questionnaire_questions";
+            // Jika untuk publik, hanya ambil yang aktif
+            if (isset($payload['public']) && $payload['public'] == true) {
+                $sql .= " WHERE is_active = 1";
+            }
+            $stmt = $conn->prepare($sql);
+            $stmt->execute();
+            $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $response = ["status" => "success", "data" => $data];
+            break;
+
+        // Admin: Menambah Pertanyaan
+        case 'addQuestion':
+            if (!isset($payload['text']) || !isset($payload['type'])) {
+                throw new Exception("Data pertanyaan tidak lengkap.");
+            }
+            $stmt = $conn->prepare("INSERT INTO questionnaire_questions (question_text, question_type, is_active) VALUES (:txt, :type, 1)");
+            $stmt->execute([':txt' => $payload['text'], ':type' => $payload['type']]);
+            $response = ["status" => "success", "message" => "Pertanyaan ditambahkan"];
+            break;
+
+        // Admin: Hapus Pertanyaan
+        case 'deleteQuestion':
+            if (!isset($payload['id'])) throw new Exception("ID required");
+            $stmt = $conn->prepare("DELETE FROM questionnaire_questions WHERE id = :id");
+            $stmt->execute([':id' => $payload['id']]);
+            $response = ["status" => "success"];
+            break;
+
+        // Public: Submit Jawaban
+        case 'submitQuestionnaire':
+            $stmt = $conn->prepare("INSERT INTO questionnaire_responses (respondent_name, respondent_role, answers_json, created_at) VALUES (:name, :role, :ans, NOW())");
+            $stmt->execute([
+                ':name' => $payload['name'],
+                ':role' => $payload['role'],
+                ':ans'  => json_encode($payload['answers'])
+            ]);
+            $response = ["status" => "success", "message" => "Terima kasih atas partisipasi Anda!"];
+            break;
+            
+        // Admin: Get Results
+        case 'getQuestionnaireResults':
+            $stmt = $conn->prepare("SELECT * FROM questionnaire_responses ORDER BY created_at DESC LIMIT 100");
+            $stmt->execute();
+            $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Decode JSON answers for easier frontend handling
+            $cleanData = [];
+            foreach($data as $row) {
+                $row['answers'] = json_decode($row['answers_json'], true);
+                unset($row['answers_json']);
+                $cleanData[] = $row;
+            }
+            
+            $response = ["status" => "success", "data" => $cleanData];
+            break;
 
         default:
             $response = ["status" => "error", "message" => "Unknown action"];

@@ -1,385 +1,641 @@
-import React, { useState } from 'react';
-import { ShieldCheck, FileText, Users, CheckCircle, ArrowRight, BookOpen, Activity, Phone, MapPin, Mail, List, FileSignature, Microscope, Scale, Download } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ShieldCheck, Download, ChevronRight, FileText, Users, CheckCircle, ArrowRight, BookOpen, Menu, X, List, FileSignature, Microscope, Scale, Activity, Gavel, FileCheck, Brain, Lock } from 'lucide-react';
 import { generateManualPDF } from './Shared';
 
 interface LandingPageProps {
   onEnterSystem: () => void;
+  onOpenQuestionnaire?: () => void;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onEnterSystem }) => {
-  const [activeTab, setActiveTab] = useState<'tugas' | 'ic' | 'jenis' | 'integritas'>('tugas');
+// --- TRANSLATION DICTIONARY ---
+const translations = {
+  id: {
+    nav: {
+      home: "Beranda",
+      about: "Tentang KEPK",
+      flow: "Alur Pengajuan",
+      questionnaire: "Kuesioner",
+      guide: "Panduan",
+      login: "Masuk SIM KEPK"
+    },
+    hero: {
+      badge: "Komisi Etik Penelitian Kesehatan",
+      title_1: "Integritas Etik untuk",
+      title_2: "Kualitas Riset",
+      description: "Lembaga otoritas yang berwenang melakukan kajian etik, monitoring, dan evaluasi penelitian kesehatan untuk menjamin perlindungan subjek manusia sesuai standar WHO.",
+      btn_submit: "Ajukan Protokol",
+      btn_learn: "Pelajari Alur",
+      accredited: "Terakreditasi",
+      accredited_sub: "Komite Etik Nasional",
+      card_1: "3 Prinsip Etik",
+      card_2: "7 Standar Etik",
+      card_3: "25 Pedoman WHO"
+    },
+    about: {
+      title: "Informasi KEPK",
+      subtitle: "Pedoman, tugas, dan prinsip integritas penelitian.",
+      card_1_title: "Tugas Pokok & Fungsi KEPK",
+      card_1_desc: "KEPK (Komisi Etik Penelitian Kesehatan) merupakan lembaga otonom yang diberikan wewenang untuk melakukan kajian etik penelitian kesehatan melalui 3 prinsip etik, 7 standar etik dan 25 pedoman etik.",
+      card_1_list: [
+        "Melakukan kajian etik protokol penelitian kesehatan yang mengikutsertakan manusia dan/atau hewan percobaan.",
+        "Memberikan persetujuan etik (ethical clearance) terhadap protokol penelitian.",
+        "Melakukan monitoring dan evaluasi terhadap pelaksanaan penelitian yang telah memperoleh persetujuan etik.",
+        "Melakukan sosialisasi pedoman etik sesuai standar dan pedoman WHO.",
+        "Mengusulkan pemberhentian pelaksanaan penelitian kesehatan terhadap penelitian yang menyimpang.",
+        "Mengajukan kajian ulang protokol penelitian kesehatan dari institusi lain yang bersengketa.",
+        "Melakukan akreditasi kompetensi komisi etik / Lembaga kaji etik.",
+        "Melakukan pelatihan Etik penelitian kesehatan.",
+        "Membuat laporan kegiatan Komisi Etik kepada Fakultas Keperawatan."
+      ],
+      card_2_title: "Informed Consent",
+      card_2_desc_1: "Informed consent adalah persetujuan yang diberikan oleh klien atau subjek penelitian tentang segala tindakan / perlakuan yang hendak dilakukan terhadap dirinya, setelah memperoleh penjelasan adekuat dari tenaga kesehatan atau pelaksana penelitian.",
+      card_2_desc_2: "Harus memperoleh perhatian dan kedudukan yang lebih tinggi dibanding informed consent untuk tindakan pelayanan kesehatan, karena subyek penelitian tidak memperoleh manfaat langsung dari keikutsertaannya.",
+      legal_impl: "Implikasi Hukum",
+      legal_desc: "Selain mengandung aspek etik, Informed consent juga mempunyai implikasi hukum. Bila dilanggar akan berdampak sanksi hukum pidana, perdata maupun administratif.",
+      mandatory_for: "Wajib Ada Untuk:",
+      mandatory_list: ["Subjek Manusia", "Masyarakat", "Data Rekam Medik Klien", "Spesimen Biologik"],
+      card_3_title: "Jenis Penelitian Kesehatan",
+      card_3_quote: "Penelitian kesehatan sarat dengan rambu etika karena melibatkan subjek manusia yang dipaparkan pada rasa tidak enak dan resiko. Metode Penelitian yang kurang baik adalah tidak etis.",
+      aspect_general: "Aspek Umum",
+      aspect_nursing: "Bidang Ilmu Keperawatan",
+      card_4_title: "Integritas Peneliti",
+      integrity_5: "5 Pilar Integritas Akademis",
+      integrity_during: "Integritas Selama Penelitian",
+      integrity_during_desc: "Sesuai Deklarasi Helsinki (Paragraf 10): Tugas peneliti adalah melindungi hidup, kesehatan, privasi, dan martabat subjek manusia.",
+      attention: "Perhatian Khusus:",
+      attention_desc: "Subjek vulnerable (anak-anak, orang cacat, wanita hamil, lansia, dll).",
+      integrity_after: "Integritas Sesudah Penelitian",
+      integrity_after_1: "1. Akses Hasil Riset",
+      integrity_after_1_desc: "Populasi yang ikut serta harus mendapat manfaat dari hasil penelitian (Deklarasi Helsinki No. 19 & 30).",
+      integrity_after_2: "2. Pengarsipan",
+      integrity_after_2_desc: "Data asli harus disimpan baik-baik untuk keperluan klarifikasi (audit trail) bila diperlukan di masa depan.",
+      integrity_after_3: "3. HKI & Publikasi",
+      integrity_after_3_desc: "Integritas etis terkait intelektual property (Paten, Copyrights) dan Ownership of data."
+    },
+    flow: {
+      title: "Alur Pengajuan Etik",
+      subtitle: "Proses mudah dan transparan dari awal hingga terbit sertifikat.",
+      steps: [
+        { title: "1. Registrasi", desc: "Buat akun peneliti menggunakan data identitas (NIM/NIK) dan tunggu validasi admin." },
+        { title: "2. Submit Protokol", desc: "Isi formulir pengajuan, upload dokumen, dan lengkapi self-assessment etik." },
+        { title: "3. Telaah Reviewer", desc: "Protokol diperiksa oleh reviewer. Lakukan revisi jika ada catatan perbaikan." },
+        { title: "4. EC Terbit", desc: "Jika disetujui (Approved), unduh sertifikat Ethical Clearance digital." }
+      ]
+    },
+    footer: {
+      address: "Kampus C Mulyorejo, Surabaya",
+      rights: "Komisi Etik Penelitian Kesehatan - Fakultas Keperawatan UNAIR. All rights reserved."
+    }
+  },
+  en: {
+    nav: {
+      home: "Home",
+      about: "About KEPK",
+      flow: "Submission Flow",
+      questionnaire: "Questionnaire",
+      guide: "Guidebook",
+      login: "Login System"
+    },
+    hero: {
+      badge: "Health Research Ethics Committee",
+      title_1: "Ethical Integrity for",
+      title_2: "Research Quality",
+      description: "Authoritative body authorized to conduct ethical review, monitoring, and evaluation of health research to ensure the protection of human subjects according to WHO standards.",
+      btn_submit: "Submit Protocol",
+      btn_learn: "Learn Process",
+      accredited: "Accredited",
+      accredited_sub: "National Ethics Committee",
+      card_1: "3 Ethical Principles",
+      card_2: "7 Ethical Standards",
+      card_3: "25 WHO Guidelines"
+    },
+    about: {
+      title: "Information Center",
+      subtitle: "Guidelines, duties, and principles of research integrity.",
+      card_1_title: "Main Duties & Functions",
+      card_1_desc: "KEPK (Health Research Ethics Committee) is an autonomous institution authorized to conduct ethical reviews of health research through 3 ethical principles, 7 ethical standards, and 25 ethical guidelines.",
+      card_1_list: [
+        "Conduct ethical review of health research protocols involving humans and/or experimental animals.",
+        "Provide ethical clearance for research protocols.",
+        "Conduct monitoring and evaluation of research implementation that has obtained ethical approval.",
+        "Disseminate ethical guidelines according to WHO standards.",
+        "Propose suspension of health research implementation for deviating research.",
+        "Submit a re-review of health research protocols from other disputed institutions.",
+        "Conduct accreditation of ethics committee competence.",
+        "Conduct training on Health Research Ethics.",
+        "Create reports on Ethics Committee activities to the Faculty of Nursing."
+      ],
+      card_2_title: "Informed Consent",
+      card_2_desc_1: "Informed consent is approval given by a client or research subject regarding any action/treatment to be performed on them, after obtaining adequate explanation from health personnel or researchers.",
+      card_2_desc_2: "Must receive higher attention and position compared to informed consent for health service actions, because research subjects do not receive direct benefits from their participation.",
+      legal_impl: "Legal Implications",
+      legal_desc: "Besides containing ethical aspects, Informed consent also has legal implications. Violation will result in criminal, civil, or administrative legal sanctions.",
+      mandatory_for: "Mandatory For:",
+      mandatory_list: ["Human Subjects", "Society / Community", "Client Medical Record Data", "Biological Specimens"],
+      card_3_title: "Types of Health Research",
+      card_3_quote: "Health research is full of ethical signs because it involves human subjects exposed to discomfort and risk. Poor research methods are unethical.",
+      aspect_general: "General Aspects",
+      aspect_nursing: "Nursing Science Fields",
+      card_4_title: "Researcher Integrity",
+      integrity_5: "5 Pillars of Academic Integrity",
+      integrity_during: "Integrity During Research",
+      integrity_during_desc: "According to the Declaration of Helsinki (Paragraph 10): The researcher's duty is to protect the life, health, privacy, and dignity of human subjects.",
+      attention: "Special Attention:",
+      attention_desc: "Vulnerable subjects (children, disabled persons, pregnant women, elderly, etc).",
+      integrity_after: "Integrity After Research",
+      integrity_after_1: "1. Access to Results",
+      integrity_after_1_desc: "Populations that participate must benefit from the research results (Declaration of Helsinki No. 19 & 30).",
+      integrity_after_2: "2. Archiving",
+      integrity_after_2_desc: "Original data must be stored carefully for clarification purposes (audit trail) if needed in the future.",
+      integrity_after_3: "3. IPR & Publication",
+      integrity_after_3_desc: "Ethical integrity related to intellectual property (Patents, Copyrights) and Ownership of data."
+    },
+    flow: {
+      title: "Submission Flow",
+      subtitle: "Easy and transparent process from start to certificate issuance.",
+      steps: [
+        { title: "1. Registration", desc: "Create a researcher account using identity data (ID Number) and wait for admin validation." },
+        { title: "2. Submit Protocol", desc: "Fill out the submission form, upload documents, and complete the ethical self-assessment." },
+        { title: "3. Review Process", desc: "The protocol is checked by the reviewer. Revise if there are notes for improvement." },
+        { title: "4. EC Issuance", desc: "If approved, download the digital Ethical Clearance certificate." }
+      ]
+    },
+    footer: {
+      address: "Campus C Mulyorejo, Surabaya",
+      rights: "Health Research Ethics Committee - Faculty of Nursing UNAIR. All rights reserved."
+    }
+  }
+};
 
-  const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onEnterSystem, onOpenQuestionnaire }) => {
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [lang, setLang] = useState<'id' | 'en'>('id'); // State Bahasa
+
+  const t = translations[lang]; // Current Translation
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 50);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToSection = (e: React.MouseEvent, id: string) => {
     e.preventDefault();
     const element = document.getElementById(id);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+      const offset = 80; // height of sticky header
+      const bodyRect = document.body.getBoundingClientRect().top;
+      const elementRect = element.getBoundingClientRect().top;
+      const elementPosition = elementRect - bodyRect;
+      const offsetPosition = elementPosition - offset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+      setMobileMenuOpen(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-white font-sans text-slate-800">
-      
-      {/* NAVIGATION BAR */}
-      <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-100 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            {/* Logo Area */}
-            <div className="flex items-center space-x-3">
-              <img 
-                src="https://ppk2ipe.unair.ac.id/gambar/UNAIR_BRANDMARK_2025-02.png" 
-                alt="Logo UNAIR" 
-                className="h-12 w-auto" 
-              />
-              <div className="hidden md:block">
-                <h1 className="text-lg font-bold text-unair-blue leading-tight">Fakultas Keperawatan</h1>
-                <p className="text-xs text-slate-500 font-medium tracking-wide">UNIVERSITAS AIRLANGGA</p>
-              </div>
-            </div>
+    <div className="font-sans text-slate-800 bg-white">
+      {/* Navigation */}
+      <nav className={`fixed w-full z-50 transition-all duration-300 ${isScrolled ? 'bg-white shadow-md py-3' : 'bg-transparent py-5'}`}>
+        <div className="container mx-auto px-4 md:px-8 flex justify-between items-center">
+          <div className="flex items-center space-x-3">
+             <img 
+               src="https://ppk2ipe.unair.ac.id/gambar/UNAIR_BRANDMARK_2025-02.png" 
+               alt="Logo UNAIR" 
+               className={`h-10 w-auto transition-all ${isScrolled ? '' : 'bg-white/80 rounded p-1'}`}
+             />
+             <div>
+                <h1 className={`font-bold tracking-tight text-lg leading-tight ${isScrolled ? 'text-slate-900' : 'text-slate-900 md:text-white'}`}>SIM KEPK</h1>
+                <p className={`text-xs ${isScrolled ? 'text-slate-500' : 'text-slate-600 md:text-blue-100'}`}>Fakultas Keperawatan UNAIR</p>
+             </div>
+          </div>
 
-            {/* Desktop Menu */}
-            <div className="hidden md:flex items-center space-x-6">
+          {/* Desktop Menu */}
+          <div className="hidden md:flex items-center space-x-6">
               <a 
                 href="#beranda" 
                 onClick={(e) => scrollToSection(e, 'beranda')}
-                className="text-sm font-medium text-slate-600 hover:text-unair-blue transition-colors"
+                className={`text-sm font-medium hover:text-unair-yellow transition-colors ${isScrolled ? 'text-slate-600' : 'text-white'}`}
               >
-                Beranda
+                {t.nav.home}
               </a>
               <a 
                 href="#tentang" 
                 onClick={(e) => scrollToSection(e, 'tentang')}
-                className="text-sm font-medium text-slate-600 hover:text-unair-blue transition-colors"
+                className={`text-sm font-medium hover:text-unair-yellow transition-colors ${isScrolled ? 'text-slate-600' : 'text-white'}`}
               >
-                Visi Misi Komisi Etik
+                {t.nav.about}
               </a>
               <a 
                 href="#prosedur" 
                 onClick={(e) => scrollToSection(e, 'prosedur')}
-                className="text-sm font-medium text-slate-600 hover:text-unair-blue transition-colors"
+                className={`text-sm font-medium hover:text-unair-yellow transition-colors ${isScrolled ? 'text-slate-600' : 'text-white'}`}
               >
-                Alur Pengajuan
+                {t.nav.flow}
               </a>
+
+              {/* Menu Kuesioner (Internal) */}
+              <button 
+                onClick={onOpenQuestionnaire}
+                className={`text-sm font-medium hover:text-unair-yellow transition-colors relative ${isScrolled ? 'text-slate-600' : 'text-white'}`}
+                title={t.nav.questionnaire}
+              >
+                {t.nav.questionnaire}
+                <span className="absolute -top-1 -right-2 flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                </span>
+              </button>
               
-              <div className="h-6 w-px bg-slate-200 mx-2"></div>
+              <div className={`h-6 w-px mx-2 ${isScrolled ? 'bg-slate-200' : 'bg-white/20'}`}></div>
+
+              {/* Language Switcher Desktop */}
+              <div className="flex items-center space-x-2">
+                 <button 
+                   onClick={() => setLang('id')}
+                   className={`transition-transform hover:scale-110 ${lang === 'id' ? 'opacity-100 ring-2 ring-white rounded-full' : 'opacity-60 hover:opacity-100'}`}
+                   title="Bahasa Indonesia"
+                 >
+                    <img src="https://flagcdn.com/w40/id.png" alt="Indonesia" className="w-6 h-4 object-cover rounded shadow-sm" />
+                 </button>
+                 <button 
+                   onClick={() => setLang('en')}
+                   className={`transition-transform hover:scale-110 ${lang === 'en' ? 'opacity-100 ring-2 ring-white rounded-full' : 'opacity-60 hover:opacity-100'}`}
+                   title="English"
+                 >
+                    <img src="https://flagcdn.com/w40/gb.png" alt="English" className="w-6 h-4 object-cover rounded shadow-sm" />
+                 </button>
+              </div>
 
               <button 
                 onClick={() => generateManualPDF('general')}
-                className="text-sm font-bold text-slate-700 hover:text-unair-blue flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors"
-                title="Download Panduan PDF"
+                className={`text-sm font-bold flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${isScrolled ? 'text-slate-700 hover:bg-slate-50' : 'text-white hover:bg-white/10'}`}
+                title={t.nav.guide}
               >
                 <Download className="w-4 h-4" />
-                Panduan
+                {t.nav.guide}
               </button>
 
               <button 
                 onClick={onEnterSystem}
-                className="bg-unair-blue text-white px-5 py-2.5 rounded-full font-bold text-sm shadow-lg shadow-blue-900/10 hover:bg-blue-800 transition-all flex items-center gap-2"
+                className="bg-unair-yellow text-slate-900 px-5 py-2.5 rounded-full font-bold text-sm shadow-lg hover:bg-yellow-400 transition-all flex items-center gap-2"
               >
                 <ShieldCheck className="w-4 h-4" />
-                Masuk SIM KEPK
+                {t.nav.login}
               </button>
             </div>
-          </div>
+
+            {/* Mobile Menu Button */}
+            <div className="md:hidden flex items-center gap-4">
+               {/* Language Switcher Mobile */}
+               <div className="flex items-center space-x-2">
+                 <button onClick={() => setLang('id')} className={lang === 'id' ? 'opacity-100' : 'opacity-50'}>
+                    <img src="https://flagcdn.com/w40/id.png" alt="ID" className="w-6 h-4 rounded" />
+                 </button>
+                 <button onClick={() => setLang('en')} className={lang === 'en' ? 'opacity-100' : 'opacity-50'}>
+                    <img src="https://flagcdn.com/w40/gb.png" alt="EN" className="w-6 h-4 rounded" />
+                 </button>
+               </div>
+              <button 
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className={`p-2 rounded-lg ${isScrolled ? 'text-slate-900' : 'text-slate-900'}`} 
+              >
+                {mobileMenuOpen ? <X className="w-6 h-6"/> : <Menu className="w-6 h-6"/>}
+              </button>
+            </div>
         </div>
+
+        {/* Mobile Menu Dropdown */}
+        {mobileMenuOpen && (
+           <div className="md:hidden bg-white shadow-xl border-t border-slate-100 absolute w-full top-full left-0 py-4 px-4 flex flex-col space-y-4 animate-fadeIn">
+              <a href="#beranda" onClick={(e) => scrollToSection(e, 'beranda')} className="text-slate-700 font-medium py-2">{t.nav.home}</a>
+              <a href="#tentang" onClick={(e) => scrollToSection(e, 'tentang')} className="text-slate-700 font-medium py-2">{t.nav.about}</a>
+              <a href="#prosedur" onClick={(e) => scrollToSection(e, 'prosedur')} className="text-slate-700 font-medium py-2">{t.nav.flow}</a>
+              <button onClick={onOpenQuestionnaire} className="text-left text-slate-700 font-medium py-2">{t.nav.questionnaire}</button>
+              <button onClick={() => generateManualPDF('general')} className="flex items-center gap-2 text-slate-700 font-medium py-2">
+                 <Download className="w-4 h-4"/> {t.nav.guide}
+              </button>
+              <button onClick={onEnterSystem} className="w-full bg-unair-blue text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2">
+                 <ShieldCheck className="w-4 h-4"/> {t.nav.login}
+              </button>
+           </div>
+        )}
       </nav>
 
-      {/* HERO SECTION */}
-      <section id="beranda" className="relative pt-20 pb-32 overflow-hidden bg-slate-50 scroll-mt-24">
-        <div className="absolute top-0 right-0 w-1/2 h-full bg-blue-50/50 skew-x-12 translate-x-20 z-0"></div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6">
-              <div className="inline-flex items-center px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 text-xs font-bold uppercase tracking-wider mb-2">
-                Ethical Clearance System
-              </div>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-slate-900 leading-tight">
-                Komisi Etik Penelitian <span className="text-unair-blue">Kesehatan</span>
-              </h1>
-              <p className="text-lg text-slate-600 leading-relaxed max-w-xl">
-                Menjamin perlindungan hak, keselamatan, dan kesejahteraan subjek manusia dalam penelitian kesehatan di lingkungan Fakultas Keperawatan Universitas Airlangga.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                <button 
-                  onClick={onEnterSystem}
-                  className="px-8 py-4 bg-unair-yellow text-slate-900 rounded-lg font-bold shadow-lg hover:shadow-xl hover:bg-yellow-400 transition-all flex items-center justify-center gap-2"
-                >
-                  Ajukan Etik Sekarang
-                  <ArrowRight className="w-5 h-5" />
-                </button>
-                <button 
-                  onClick={() => generateManualPDF('general')}
-                  className="px-8 py-4 bg-white border border-slate-200 text-slate-700 rounded-lg font-semibold hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  Download Panduan
-                </button>
-              </div>
+      {/* Hero Section */}
+      <header 
+        id="beranda" 
+        className="relative pt-32 pb-20 md:pt-48 md:pb-32 text-white overflow-hidden bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: "url('https://pkkii.pendidikan.unair.ac.id/website/VB%206.png')" }}
+      >
+         {/* Overlay Gradient */}
+         <div className="absolute inset-0 bg-gradient-to-r from-unair-blue/90 via-unair-blue/80 to-slate-900/60 z-0"></div>
+
+         <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none z-0">
+            <div className="absolute top-20 right-20 w-96 h-96 bg-white rounded-full blur-3xl"></div>
+            <div className="absolute bottom-[-100px] left-[-100px] w-[500px] h-[500px] bg-unair-yellow rounded-full blur-3xl"></div>
+         </div>
+         
+         <div className="container mx-auto px-4 md:px-8 relative z-10 text-center md:text-left">
+            <div className="flex flex-col md:flex-row items-center">
+               <div className="md:w-1/2 mb-10 md:mb-0">
+                  <div className="inline-block px-4 py-1.5 bg-white/10 rounded-full border border-white/20 text-blue-100 text-sm font-semibold mb-6 animate-fadeIn">
+                     {t.hero.badge}
+                  </div>
+                  <h1 className="text-4xl md:text-6xl font-extrabold leading-tight mb-6 drop-shadow-lg">
+                     {t.hero.title_1} <br/>
+                     <span className="text-unair-yellow">{t.hero.title_2}</span>
+                  </h1>
+                  <p className="text-lg text-blue-50 mb-8 max-w-xl leading-relaxed drop-shadow-md font-medium">
+                     {t.hero.description}
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+                     <button onClick={onEnterSystem} className="bg-unair-yellow text-slate-900 px-8 py-4 rounded-full font-bold text-lg hover:bg-yellow-400 transition-all shadow-lg hover:shadow-yellow-400/20 flex items-center justify-center">
+                        {t.hero.btn_submit} <ArrowRight className="w-5 h-5 ml-2"/>
+                     </button>
+                     <button onClick={(e) => scrollToSection(e, 'prosedur')} className="bg-white/10 text-white border border-white/20 px-8 py-4 rounded-full font-bold text-lg hover:bg-white/20 transition-all flex items-center justify-center backdrop-blur-sm">
+                        {t.hero.btn_learn}
+                     </button>
+                  </div>
+               </div>
+               
+               <div className="md:w-1/2 flex justify-center md:justify-end relative">
+                  <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 max-w-sm w-full shadow-2xl">
+                     <div className="flex items-center gap-4 mb-6">
+                        <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center shadow-lg">
+                           <CheckCircle className="w-6 h-6 text-white"/>
+                        </div>
+                        <div>
+                           <h4 className="text-2xl font-bold">{t.hero.accredited}</h4>
+                           <p className="text-sm text-blue-100">{t.hero.accredited_sub}</p>
+                        </div>
+                     </div>
+                     <div className="space-y-4">
+                        <div className="bg-white/10 p-4 rounded-lg flex items-center gap-3 border border-white/5 hover:bg-white/20 transition-colors">
+                           <Gavel className="w-5 h-5 text-unair-yellow"/>
+                           <span className="font-medium">{t.hero.card_1}</span>
+                        </div>
+                        <div className="bg-white/10 p-4 rounded-lg flex items-center gap-3 border border-white/5 hover:bg-white/20 transition-colors">
+                           <FileCheck className="w-5 h-5 text-unair-yellow"/>
+                           <span className="font-medium">{t.hero.card_2}</span>
+                        </div>
+                        <div className="bg-white/10 p-4 rounded-lg flex items-center gap-3 border border-white/5 hover:bg-white/20 transition-colors">
+                           <BookOpen className="w-5 h-5 text-unair-yellow"/>
+                           <span className="font-medium">{t.hero.card_3}</span>
+                        </div>
+                     </div>
+                  </div>
+               </div>
             </div>
-            <div className="relative hidden lg:block">
-              <div className="absolute -inset-4 bg-gradient-to-r from-unair-blue to-blue-600 rounded-2xl blur-lg opacity-30"></div>
-              <img 
-                src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80" 
-                alt="Medical Research" 
-                className="relative rounded-2xl shadow-2xl border-4 border-white object-cover h-[500px] w-full"
-              />
+         </div>
+      </header>
+
+      {/* Info Sections - STACKED LAYOUT WITH ZOOM TRANSITION */}
+      <section id="tentang" className="py-20 bg-slate-50">
+         <div className="container mx-auto px-4 md:px-8">
+            <div className="text-center max-w-3xl mx-auto mb-16">
+               <h2 className="text-3xl font-bold text-slate-900 mb-4">{t.about.title}</h2>
+               <div className="w-20 h-1.5 bg-unair-yellow mx-auto rounded-full"></div>
+               <p className="text-slate-500 mt-4">{t.about.subtitle}</p>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ABOUT SECTION (UPDATED) */}
-      <section id="tentang" className="py-20 bg-white scroll-mt-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-10 max-w-4xl mx-auto">
-            <h2 className="text-3xl font-bold text-slate-900 mb-4">Visi Misi Komisi Etik</h2>
-            <div className="w-20 h-1 bg-unair-yellow mx-auto mb-6"></div>
-            <p className="text-slate-600 leading-relaxed">
-              KEPK (Komisi Etik Penelitian Kesehatan) merupakan lembaga yang diberikan wewenang secara otonomi oleh pihak instansi atau pemerintah untuk melakukan kajian etik penelitian kesehatan melalui 3 prinsip etik, 7 standar etik dan 25 pedoman etik, yang terdiri para reviewer etik penelitian menggunakan subyek manusia sesuai bidang kepakarannya dan sekretariat.
-            </p>
-          </div>
-
-          {/* TABS NAVIGATION */}
-          <div className="flex flex-wrap justify-center gap-2 mb-8">
-             <button 
-               onClick={() => setActiveTab('tugas')}
-               className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'tugas' ? 'bg-unair-blue text-white shadow-lg' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-             >
-               <List className="w-4 h-4" /> Tugas Pokok
-             </button>
-             <button 
-               onClick={() => setActiveTab('ic')}
-               className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'ic' ? 'bg-unair-blue text-white shadow-lg' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-             >
-               <FileSignature className="w-4 h-4" /> Informed Consent
-             </button>
-             <button 
-               onClick={() => setActiveTab('jenis')}
-               className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'jenis' ? 'bg-unair-blue text-white shadow-lg' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-             >
-               <Microscope className="w-4 h-4" /> Jenis Penelitian
-             </button>
-             <button 
-               onClick={() => setActiveTab('integritas')}
-               className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'integritas' ? 'bg-unair-blue text-white shadow-lg' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-             >
-               <Scale className="w-4 h-4" /> Integritas Peneliti
-             </button>
-          </div>
-
-          {/* TAB CONTENT */}
-          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-8 min-h-[400px]">
             
-            {/* TAB 1: TUGAS POKOK */}
-            {activeTab === 'tugas' && (
-              <div className="animate-fadeIn space-y-4">
-                <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center">
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                    <List className="w-6 h-6 text-unair-blue"/>
-                  </div>
-                  Tugas Pokok & Fungsi KEPK
-                </h3>
-                <ul className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-slate-700">
-                  {[
-                    "Melakukan kajian etik protokol penelitian kesehatan yang mengikutsertakan manusia dan/atau hewan percobaan.",
-                    "Memberikan persetujuan etik (ethical clearance) terhadap protokol penelitian.",
-                    "Melakukan monitoring dan evaluasi terhadap pelaksanaan penelitian.",
-                    "Melakukan sosialisasi pedoman etik sesuai standar dan pedoman WHO.",
-                    "Mengusulkan pemberhentian pelaksanaan penelitian yang menyimpang dari protokol.",
-                    "Mengajukan kajian ulang protokol penelitian kesehatan yang bersengketa.",
-                    "Melakukan akreditasi kompetensi komisi etik / Lembaga kaji etik.",
-                    "Melakukan pelatihan Etik penelitian kesehatan.",
-                    "Membuat laporan kegiatan Komisi Etik kepada Fakultas Keperawatan."
-                  ].map((item, idx) => (
-                    <li key={idx} className="flex items-start bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
-                      <CheckCircle className="w-5 h-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* TAB 2: INFORMED CONSENT */}
-            {activeTab === 'ic' && (
-              <div className="animate-fadeIn">
-                <div className="flex flex-col md:flex-row gap-8 items-start">
-                  <div className="flex-1 space-y-6">
-                    <div>
-                      <h3 className="text-xl font-bold text-slate-800 mb-2">Definisi</h3>
-                      <p className="text-slate-600 leading-relaxed text-sm">
-                        Informed consent adalah persetujuan yang diberikan oleh klien atau subjek penelitian tentang segala tindakan/perlakuan yang hendak dilakukan terhadap dirinya, setelah memperoleh penjelasan adekuat dari tenaga kesehatan atau pelaksana penelitian.
-                      </p>
-                    </div>
-                    <div className="bg-blue-50 border-l-4 border-unair-blue p-4 rounded-r-lg">
-                      <h4 className="font-bold text-unair-blue text-sm mb-1">Pentingnya Informed Consent</h4>
-                      <p className="text-slate-700 text-sm">
-                        Harus memperoleh perhatian dan kedudukan yang lebih tinggi dibanding informed consent pelayanan kesehatan, karena subyek penelitian tidak memperoleh manfaat langsung dari keikutsertaannya.
-                      </p>
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-slate-800 mb-2">Aspek Hukum</h3>
-                      <p className="text-slate-600 text-sm">
-                        Selain mengandung aspek etik, Informed consent juga mempunyai implikasi hukum dalam peraturan perundang-undangan di Indonesia. Pelanggaran dapat berdampak sanksi hukum pidana, perdata, maupun administratif.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="md:w-1/3 bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                    <FileSignature className="w-12 h-12 text-unair-yellow mb-4" />
-                    <h4 className="font-bold text-slate-800 mb-2">Dokumen Wajib</h4>
-                    <p className="text-xs text-slate-500 mb-4">
-                      Informed consent harus selalu ada sebelum dilaksanakan penelitian yang menggunakan subjek manusia, data rekam medik, dan spesimen biologik.
-                    </p>
-                    <div className="text-xs font-semibold bg-slate-100 p-2 rounded text-center text-slate-600">
-                      Dokumen melekat pada Ethical Clearance
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* TAB 3: JENIS PENELITIAN */}
-            {activeTab === 'jenis' && (
-              <div className="animate-fadeIn">
-                 <p className="text-sm text-slate-600 mb-6 bg-white p-4 rounded-lg border border-slate-200">
-                   Penelitian kesehatan merupakan bentuk penelitian yang sarat dengan rambu-rambu etika karena melibatkan subjek manusia yang dipaparkan pada rasa tidak enak dan risiko. Metode penelitian yang kurang baik adalah tidak etis karena akan memberikan hasil yang tidak akurat.
-                 </p>
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                   <div>
-                     <h4 className="font-bold text-slate-800 mb-4 flex items-center border-b pb-2">
-                       <Activity className="w-4 h-4 mr-2 text-unair-blue"/> Aspek Umum
-                     </h4>
-                     <ul className="space-y-2 text-sm text-slate-600">
-                        <li className="flex items-center"><div className="w-1.5 h-1.5 bg-slate-400 rounded-full mr-2"></div>Penelitian Genetika & Sel Punca (Stem Cell)</li>
-                        <li className="flex items-center"><div className="w-1.5 h-1.5 bg-slate-400 rounded-full mr-2"></div>Pemanfaatan Bahan Biologik Tersimpan (BBT)</li>
-                        <li className="flex items-center"><div className="w-1.5 h-1.5 bg-slate-400 rounded-full mr-2"></div>Uji Klinik</li>
-                        <li className="flex items-center"><div className="w-1.5 h-1.5 bg-slate-400 rounded-full mr-2"></div>Penelitian Epidemiologi</li>
-                        <li className="flex items-center"><div className="w-1.5 h-1.5 bg-slate-400 rounded-full mr-2"></div>Penggunaan Hewan Percobaan</li>
-                     </ul>
-                   </div>
-                   <div>
-                     <h4 className="font-bold text-slate-800 mb-4 flex items-center border-b pb-2">
-                       <Users className="w-4 h-4 mr-2 text-unair-blue"/> Bidang Keperawatan
-                     </h4>
-                     <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-slate-600">
-                        <div className="flex items-center"><div className="w-1.5 h-1.5 bg-unair-yellow rounded-full mr-2"></div>Kep. Anak</div>
-                        <div className="flex items-center"><div className="w-1.5 h-1.5 bg-unair-yellow rounded-full mr-2"></div>Kep. Maternitas</div>
-                        <div className="flex items-center"><div className="w-1.5 h-1.5 bg-unair-yellow rounded-full mr-2"></div>Kep. Jiwa</div>
-                        <div className="flex items-center"><div className="w-1.5 h-1.5 bg-unair-yellow rounded-full mr-2"></div>Kep. Medikal Bedah</div>
-                        <div className="flex items-center"><div className="w-1.5 h-1.5 bg-unair-yellow rounded-full mr-2"></div>Kep. Onkologi</div>
-                        <div className="flex items-center"><div className="w-1.5 h-1.5 bg-unair-yellow rounded-full mr-2"></div>Kep. Kardiovaskuler</div>
-                        <div className="flex items-center"><div className="w-1.5 h-1.5 bg-unair-yellow rounded-full mr-2"></div>Kep. Kritis</div>
-                        <div className="flex items-center"><div className="w-1.5 h-1.5 bg-unair-yellow rounded-full mr-2"></div>Kep. Komunitas</div>
-                        <div className="flex items-center"><div className="w-1.5 h-1.5 bg-unair-yellow rounded-full mr-2"></div>Kep. Gerontik</div>
-                        <div className="flex items-center"><div className="w-1.5 h-1.5 bg-unair-yellow rounded-full mr-2"></div>Manajemen Kep.</div>
-                     </div>
-                   </div>
-                 </div>
-              </div>
-            )}
-
-            {/* TAB 4: INTEGRITAS PENELITI */}
-            {activeTab === 'integritas' && (
-              <div className="animate-fadeIn space-y-6">
-                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                  <h3 className="font-bold text-slate-800 mb-4 text-center">5 Pilar Integritas Akademis</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
-                    {['Honesty', 'Trust', 'Fairness', 'Respect', 'Responsibility'].map((pilar, idx) => (
-                      <div key={idx} className="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                         <div className="text-unair-blue font-bold text-sm">{pilar}</div>
+            <div className="space-y-8">
+                {/* 1. TUGAS POKOK */}
+                <div className="group bg-white rounded-2xl p-8 shadow-sm border border-slate-200 transition-all duration-500 hover:shadow-xl hover:scale-[1.02] hover:border-unair-blue/30 relative overflow-hidden">
+                    {/* Decorative Background Effect on Hover */}
+                    <div className="absolute -right-10 -top-10 w-40 h-40 bg-blue-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    
+                    <h3 className="text-xl font-bold text-slate-800 flex items-center mb-6 relative z-10">
+                      <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4 group-hover:bg-unair-blue group-hover:text-white transition-colors duration-300">
+                        <List className="w-6 h-6 text-unair-blue group-hover:text-white"/>
                       </div>
-                    ))}
-                  </div>
+                      {t.about.card_1_title}
+                    </h3>
+                    <p className="text-slate-600 mb-6 leading-relaxed relative z-10">
+                        {t.about.card_1_desc}
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-slate-700 relative z-10">
+                      {t.about.card_1_list.map((item, idx) => (
+                        <div key={idx} className="flex items-start p-3 bg-slate-50 rounded-lg border border-slate-100 group-hover:bg-white group-hover:shadow-sm hover:translate-x-1 transition-all duration-300">
+                          <CheckCircle className="w-5 h-5 text-green-500 mr-3 shrink-0 mt-0.5" />
+                          <span className="leading-relaxed">{item}</span>
+                        </div>
+                      ))}
+                    </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                   <div>
-                     <h4 className="font-bold text-slate-800 mb-2 text-sm uppercase tracking-wide">Selama Penelitian</h4>
-                     <p className="text-sm text-slate-600 leading-relaxed mb-3">
-                       Sesuai Deklarasi Helsinki, peneliti wajib menjaga hidup, kesehatan, privasi, dan martabat subjek manusia.
+                {/* 2. INFORMED CONSENT */}
+                <div className="group bg-white rounded-2xl p-8 shadow-sm border border-slate-200 transition-all duration-500 hover:shadow-xl hover:scale-[1.02] hover:border-unair-blue/30 relative overflow-hidden">
+                    <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-yellow-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    
+                    <div className="flex flex-col md:flex-row gap-8 items-start relative z-10">
+                      <div className="flex-1 space-y-6">
+                        <div>
+                          <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center">
+                             <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4 group-hover:bg-unair-blue group-hover:text-white transition-colors duration-300">
+                                <FileSignature className="w-6 h-6 text-unair-blue group-hover:text-white"/>
+                             </div>
+                             {t.about.card_2_title}
+                          </h3>
+                          <p className="text-slate-600 leading-relaxed text-sm">
+                            {t.about.card_2_desc_1}
+                          </p>
+                          <p className="text-slate-600 leading-relaxed text-sm mt-3">
+                            {t.about.card_2_desc_2}
+                          </p>
+                        </div>
+                        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg group-hover:bg-red-100 hover:shadow-sm transition-all duration-300">
+                          <h4 className="font-bold text-red-700 text-sm mb-1 flex items-center"><Gavel className="w-4 h-4 mr-2"/> {t.about.legal_impl}</h4>
+                          <p className="text-slate-700 text-sm">
+                            {t.about.legal_desc}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="md:w-1/3 bg-slate-50 p-6 rounded-xl border border-slate-200 shadow-sm w-full group-hover:bg-white group-hover:shadow-md transition-all duration-300">
+                        <h4 className="font-bold text-slate-800 mb-4 border-b border-slate-200 pb-2">{t.about.mandatory_for}</h4>
+                        <ul className="space-y-3 text-sm text-slate-600">
+                            {t.about.mandatory_list.map((item, idx) => (
+                                <li key={idx} className="flex items-start p-2 rounded hover:bg-slate-50 hover:translate-x-1 transition-all duration-200 cursor-default">
+                                    <div className="w-1.5 h-1.5 bg-unair-yellow rounded-full mt-1.5 mr-2 shrink-0"></div>
+                                    {item}
+                                </li>
+                            ))}
+                        </ul>
+                      </div>
+                    </div>
+                </div>
+
+                {/* 3. JENIS PENELITIAN */}
+                <div className="group bg-white rounded-2xl p-8 shadow-sm border border-slate-200 transition-all duration-500 hover:shadow-xl hover:scale-[1.02] hover:border-unair-blue/30 relative overflow-hidden">
+                     <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-slate-50 rounded-full opacity-0 group-hover:opacity-50 transition-opacity duration-500 blur-3xl pointer-events-none"></div>
+
+                     <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center relative z-10">
+                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4 group-hover:bg-unair-blue group-hover:text-white transition-colors duration-300">
+                            <Microscope className="w-6 h-6 text-unair-blue group-hover:text-white"/>
+                        </div>
+                        {t.about.card_3_title}
+                     </h3>
+                     <p className="text-sm text-slate-600 mb-6 bg-slate-50 p-4 rounded-lg border border-slate-200 italic relative z-10 group-hover:bg-white group-hover:shadow-sm transition-all">
+                       "{t.about.card_3_quote}"
                      </p>
-                     <div className="bg-yellow-50 p-3 rounded border border-yellow-100 text-xs text-yellow-800">
-                       <strong>Perhatian Khusus:</strong> Subjek vulnerable (anak-anak, ibu hamil, lansia, disabilitas, dll).
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
+                       <div>
+                         <h4 className="font-bold text-slate-800 mb-4 flex items-center border-b pb-2">
+                           <Activity className="w-4 h-4 mr-2 text-unair-blue"/> {t.about.aspect_general}
+                         </h4>
+                         <ul className="space-y-2 text-sm text-slate-600">
+                            {[
+                                "Penelitian Genetika / Genetics",
+                                "Penelitian Sel Punca / Stem Cell",
+                                "Bahan Biologik Tersimpan / Biobank",
+                                "Uji Klinik / Clinical Trials",
+                                "Penelitian Epidemiologi / Epidemiology",
+                                "Hewan Percobaan / Animal Subject"
+                            ].map((item,i) => (
+                                <li key={i} className="flex items-center p-2 rounded-lg hover:bg-slate-50 hover:translate-x-2 transition-all duration-300 cursor-default">
+                                    <div className="w-1.5 h-1.5 bg-slate-400 rounded-full mr-3 group-hover:bg-unair-yellow transition-colors"></div>
+                                    {item}
+                                </li>
+                            ))}
+                         </ul>
+                       </div>
+                       <div>
+                         <h4 className="font-bold text-slate-800 mb-4 flex items-center border-b pb-2">
+                           <Users className="w-4 h-4 mr-2 text-unair-blue"/> {t.about.aspect_nursing}
+                         </h4>
+                         <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-slate-600">
+                            {[
+                                "Pediatric Nursing", "Maternity Nursing", 
+                                "Mental Health Nursing", "Medical Surgical Nursing",
+                                "Oncology Nursing", "Cardiovascular Nursing",
+                                "Critical Care Nursing", "Family Nursing",
+                                "Community Nursing", "Gerontic Nursing",
+                                "Nursing Education", "Nursing Management"
+                            ].map((item,i) => (
+                                <div key={i} className="flex items-center p-2 rounded-lg hover:bg-yellow-50 hover:translate-x-1 transition-all duration-300 cursor-default">
+                                    <div className="w-1.5 h-1.5 bg-unair-yellow rounded-full mr-2 shrink-0"></div>
+                                    <span className="truncate" title={item}>{item}</span>
+                                </div>
+                            ))}
+                         </div>
+                       </div>
                      </div>
-                   </div>
-                   <div>
-                     <h4 className="font-bold text-slate-800 mb-2 text-sm uppercase tracking-wide">Sesudah Penelitian</h4>
-                     <ul className="text-sm text-slate-600 space-y-2">
-                       <li className="flex items-start gap-2">
-                         <span className="text-unair-blue font-bold">•</span>
-                         <span><strong>Akses Hasil:</strong> Pastikan hasil bermanfaat bagi populasi peserta.</span>
-                       </li>
-                       <li className="flex items-start gap-2">
-                         <span className="text-unair-blue font-bold">•</span>
-                         <span><strong>Pengarsipan:</strong> Data asli harus disimpan untuk klarifikasi.</span>
-                       </li>
-                       <li className="flex items-start gap-2">
-                         <span className="text-unair-blue font-bold">•</span>
-                         <span><strong>Publikasi & Intelectual Property:</strong> Menghormati kepemilikan data (Patent, Copyrights, dll).</span>
-                       </li>
-                     </ul>
-                   </div>
                 </div>
-              </div>
-            )}
-          </div>
-        </div>
+
+                {/* 4. INTEGRITAS */}
+                <div className="group bg-white rounded-2xl p-8 shadow-sm border border-slate-200 transition-all duration-500 hover:shadow-xl hover:scale-[1.02] hover:border-unair-blue/30 relative overflow-hidden">
+                    <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center relative z-10">
+                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4 group-hover:bg-unair-blue group-hover:text-white transition-colors duration-300">
+                            <Scale className="w-6 h-6 text-unair-blue group-hover:text-white"/>
+                        </div>
+                        {t.about.card_4_title}
+                    </h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 relative z-10">
+                        <div className="bg-slate-50 p-6 rounded-xl border border-slate-100 group-hover:bg-white group-hover:shadow-md transition-all duration-300">
+                            <h4 className="font-bold text-slate-800 mb-4 flex items-center"><Brain className="w-5 h-5 mr-2 text-unair-blue"/> {t.about.integrity_5}</h4>
+                            <ul className="space-y-3">
+                                {['Honesty (Kejujuran)', 'Trust (Kepercayaan)', 'Fairness (Keadilan)', 'Respect (Penghormatan)', 'Responsibility (Tanggung Jawab)'].map((p, i) => (
+                                    <li key={i} className="flex items-center text-sm text-slate-700 p-2 rounded-lg hover:bg-blue-50 hover:translate-x-2 transition-all duration-300 cursor-default hover:text-unair-blue">
+                                        <CheckCircle className="w-4 h-4 text-green-500 mr-2 shrink-0"/> 
+                                        <span className="font-medium">{p}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                        <div className="bg-slate-50 p-6 rounded-xl border border-slate-100 group-hover:bg-white group-hover:shadow-md transition-all duration-300">
+                             <h4 className="font-bold text-slate-800 mb-4 flex items-center"><ShieldCheck className="w-5 h-5 mr-2 text-unair-blue"/> {t.about.integrity_during}</h4>
+                             <p className="text-sm text-slate-600 leading-relaxed mb-4">
+                                {t.about.integrity_during_desc}
+                             </p>
+                             <div className="text-xs bg-white p-4 rounded border border-slate-200 text-slate-500 group-hover:bg-blue-50 group-hover:border-blue-200 transition-colors shadow-sm hover:shadow-md">
+                                <strong className="block mb-1 text-slate-700">{t.about.attention}</strong> 
+                                {t.about.attention_desc}
+                             </div>
+                        </div>
+                    </div>
+
+                    <div className="border-t border-slate-100 pt-6 relative z-10">
+                        <h4 className="font-bold text-slate-800 mb-4">{t.about.integrity_after}</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                            <div className="p-4 bg-blue-50 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-colors duration-500 cursor-default hover:shadow-lg transform hover:-translate-y-1">
+                                <h5 className="font-bold mb-2">{t.about.integrity_after_1}</h5>
+                                <p className="opacity-90">{t.about.integrity_after_1_desc}</p>
+                            </div>
+                            <div className="p-4 bg-blue-50 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-colors duration-500 delay-75 cursor-default hover:shadow-lg transform hover:-translate-y-1">
+                                <h5 className="font-bold mb-2">{t.about.integrity_after_2}</h5>
+                                <p className="opacity-90">{t.about.integrity_after_2_desc}</p>
+                            </div>
+                            <div className="p-4 bg-blue-50 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-colors duration-500 delay-150 cursor-default hover:shadow-lg transform hover:-translate-y-1">
+                                <h5 className="font-bold mb-2">{t.about.integrity_after_3}</h5>
+                                <p className="opacity-90">{t.about.integrity_after_3_desc}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+         </div>
       </section>
 
-      {/* ALUR PENGAJUAN */}
-      <section id="prosedur" className="py-20 bg-slate-900 text-white relative overflow-hidden scroll-mt-24">
-        {/* Decorative BG */}
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden opacity-20 pointer-events-none">
-            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500 rounded-full blur-[100px]"></div>
-            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-yellow-500 rounded-full blur-[100px]"></div>
-        </div>
+      {/* Procedure / Flow */}
+      <section id="prosedur" className="py-20 bg-white">
+         <div className="container mx-auto px-4 md:px-8">
+             <div className="text-center max-w-3xl mx-auto mb-16">
+               <h2 className="text-3xl font-bold text-slate-900 mb-4">{t.flow.title}</h2>
+               <p className="text-slate-500">{t.flow.subtitle}</p>
+            </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold mb-4">Alur Pengajuan Etik</h2>
-            <p className="text-blue-200">Langkah mudah mengajukan Ethical Clearance melalui SIM KEPK</p>
-          </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 relative">
+               {/* Connecting Line for Desktop */}
+               <div className="hidden md:block absolute top-8 left-0 w-full h-1 bg-slate-100 -z-10"></div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 relative">
-            {/* Connecting Line (Desktop) */}
-            <div className="hidden md:block absolute top-12 left-0 w-full h-0.5 bg-white/10 z-0"></div>
-
-            {[
-              { step: "01", title: "Registrasi Akun", desc: "Buat akun peneliti di SIM KEPK dan lengkapi profil." },
-              { step: "02", title: "Upload Protokol", desc: "Unggah dokumen protokol & isi self-assessment." },
-              { step: "03", title: "Proses Telaah", desc: "Reviewer melakukan telaah (Expedited/Full Board)." },
-              { step: "04", title: "Terbit EC", desc: "Sertifikat Ethical Clearance diterbitkan digital." },
-            ].map((item, idx) => (
-              <div key={idx} className="relative z-10 text-center">
-                <div className="w-24 h-24 mx-auto bg-slate-800 rounded-full border-4 border-slate-700 flex items-center justify-center mb-6 shadow-xl relative">
-                   <span className="text-3xl font-bold text-unair-yellow">{item.step}</span>
-                </div>
-                <h3 className="text-xl font-bold mb-2">{item.title}</h3>
-                <p className="text-sm text-slate-400 leading-relaxed px-4">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="text-center mt-16">
-            <button 
-              onClick={onEnterSystem}
-              className="bg-unair-blue border border-white/20 text-white px-8 py-4 rounded-lg font-bold hover:bg-white hover:text-slate-900 transition-all"
-            >
-              Mulai Pengajuan Sekarang
-            </button>
-          </div>
-        </div>
+               {t.flow.steps.map((step, idx) => {
+                  const colors = ["bg-blue-600", "bg-unair-yellow", "bg-orange-500", "bg-green-600"];
+                  return (
+                    <div key={idx} className="bg-white p-6 pt-0 text-center group">
+                       <div className={`w-16 h-16 ${colors[idx]} text-white rounded-full flex items-center justify-center text-xl font-bold shadow-lg mx-auto mb-6 group-hover:scale-110 transition-transform`}>
+                          {idx + 1}
+                       </div>
+                       <h3 className="text-lg font-bold text-slate-800 mb-3">{step.title}</h3>
+                       <p className="text-sm text-slate-500 leading-relaxed">{step.desc}</p>
+                    </div>
+                  );
+               })}
+            </div>
+         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="bg-white border-t border-slate-200 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <p className="text-sm text-slate-400">
-              &copy; {new Date().getFullYear()} Fakultas Keperawatan Universitas Airlangga. All rights reserved.
-            </p>
-          </div>
-        </div>
+      {/* Footer */}
+      <footer className="bg-slate-900 text-slate-400 py-12 border-t border-slate-800">
+         <div className="container mx-auto px-4 md:px-8">
+            <div className="flex flex-col md:flex-row justify-between items-center mb-8">
+               <div className="flex items-center space-x-3 mb-4 md:mb-0">
+                  <img 
+                     src="https://ppk2ipe.unair.ac.id/gambar/UNAIR_BRANDMARK_2025-02.png" 
+                     alt="Logo UNAIR" 
+                     className="h-10 bg-white rounded p-1" 
+                  />
+                  <div>
+                     <h5 className="text-white font-bold">SIM KEPK</h5>
+                     <p className="text-xs">Fakultas Keperawatan Universitas Airlangga</p>
+                  </div>
+               </div>
+               <div className="text-sm text-center md:text-right">
+                  <p>{t.footer.address}</p>
+                  <p>Telp: (031) 5913754 | Email: kepk@fkp.unair.ac.id</p>
+               </div>
+            </div>
+            <div className="border-t border-slate-800 pt-8 text-center text-xs">
+               &copy; {new Date().getFullYear()} {t.footer.rights}
+            </div>
+         </div>
       </footer>
     </div>
   );

@@ -83,6 +83,24 @@ export interface ResearchSubmission {
   certificateUrl?: string; // URL Sertifikat yang diupload Admin
 }
 
+// --- TYPE UNTUK KUESIONER ---
+export type QuestionType = 'rating' | 'text' | 'yesno';
+
+export interface QuestionnaireQuestion {
+  id: number;
+  question_text: string;
+  question_type: QuestionType;
+  is_active: boolean;
+}
+
+export interface QuestionnaireResponse {
+  id: number;
+  respondent_name: string;
+  respondent_role: string;
+  answers: { question_id: number; answer: string }[];
+  created_at: string;
+}
+
 export const SEVEN_STANDARDS = [
   { id: 1, standard: "Nilai Sosial", description: "Apakah penelitian ini memiliki relevansi sosial dan memberikan kontribusi pada masalah kesehatan/sosial?" },
   { id: 2, standard: "Nilai Ilmiah", description: "Apakah desain penelitian valid dan mampu menjawab pertanyaan penelitian secara ilmiah?" },

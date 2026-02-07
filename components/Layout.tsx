@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, FileText, CheckCircle, ShieldCheck, UserCircle, LogOut, Users, Settings, FolderCog, FileStack, BookOpen } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckCircle, ShieldCheck, UserCircle, LogOut, Users, Settings, FolderCog, FileStack, BookOpen, MessageSquare } from 'lucide-react';
 import { UserRole, UserProfile } from '../types';
 
 interface LayoutProps {
@@ -40,6 +40,7 @@ export const Layout: React.FC<LayoutProps> = ({
       { id: 'admin-users', label: 'Manajemen User', icon: Users },
       { id: 'admin-submissions', label: 'Data Pengajuan', icon: FileStack },
       { id: 'admin-documents', label: 'Master Dokumen', icon: FolderCog },
+      { id: 'admin-questionnaire', label: 'Manajemen Kuesioner', icon: MessageSquare }, // NEW MENU
       { id: 'admin-settings', label: 'Pengaturan Sistem', icon: Settings },
     ];
   }

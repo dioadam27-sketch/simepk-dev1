@@ -1,20 +1,212 @@
 import React, { useState, useEffect } from 'react';
-import { UserProfile, ResearchSubmission, DocumentRequirement, UserStatus, AdminLog } from '../types';
-import { ShieldCheck, Eye, Loader2, User, Clock, FileText, AlertTriangle, CheckCircle, ArrowLeft, FileStack, DownloadCloud, Building, CreditCard, Phone, Mail, Check, X, FolderCog, Plus, Trash2, Ban, RefreshCcw, UploadCloud, Printer, Settings, Lock, FileCheck, Server, Database, Save, Unlock, History, XCircle, Key, Send, Copy } from 'lucide-react';
+import { UserProfile, ResearchSubmission, DocumentRequirement, UserStatus, AdminLog, QuestionnaireQuestion, QuestionnaireResponse } from '../types';
+import { ShieldCheck, Eye, Loader2, User, Clock, FileText, AlertTriangle, CheckCircle, ArrowLeft, FileStack, DownloadCloud, Building, CreditCard, Phone, Mail, Check, X, FolderCog, Plus, Trash2, Ban, RefreshCcw, UploadCloud, Printer, Settings, Lock, FileCheck, Server, Database, Save, Unlock, History, XCircle, Key, Send, Copy, MessageSquare, BarChart3, ListChecks } from 'lucide-react';
 import { StatusBadge, TableSkeleton, DetailSkeleton, formatDate } from './Shared';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { apiService } from '../services/apiService';
 
-// ... (ReviewerDashboard, ReviewDetail, AdminSubmissionMonitoring, AdminSubmissionDetail remain unchanged) ...
-// --- REVIEWER COMPONENTS ---
+// --- INTERFACES ---
 
-// --- REVIEWER DASHBOARD ---
 interface ReviewerDashboardProps {
   submissions: ResearchSubmission[];
   isLoading: boolean;
   onReview: (sub: ResearchSubmission) => void;
 }
+
+interface ReviewDetailProps {
+  submission: ResearchSubmission | null;
+  onBack: () => void;
+  onSubmitReview: (id: string, action: 'approve' | 'revise', feedback?: string) => void;
+}
+
+interface AdminSubmissionProps {
+  submissions: ResearchSubmission[];
+  isLoading: boolean;
+  onViewDetail: (sub: ResearchSubmission) => void;
+}
+
+interface AdminDetailProps {
+  submission: ResearchSubmission | null;
+  onBack: () => void;
+  onUploadCert: (id: string, file: File) => Promise<void>;
+}
+
+interface AdminUserProps {
+  users: UserProfile[];
+  currentUser: UserProfile | null;
+  isLoading: boolean;
+  onStatusChange: (userId: string, status: UserStatus) => void;
+  onDeleteUser: (userId: string, adminName?: string) => void;
+  onRefresh: () => void;
+}
+
+interface AdminDocumentProps {
+  documents: DocumentRequirement[];
+  onAdd: (label: string) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+}
+
+interface AdminSettingsProps {
+  currentUser: UserProfile;
+  onUpdateProfile: (name: string, email: string) => void;
+}
+
+// --- COMPONENTS ---
+
+export const AdminQuestionnaireManagement: React.FC = () => {
+    const [activeTab, setActiveTab] = useState<'questions' | 'results'>('questions');
+    const [questions, setQuestions] = useState<QuestionnaireQuestion[]>([]);
+    const [results, setResults] = useState<QuestionnaireResponse[]>([]);
+    const [loading, setLoading] = useState(false);
+    
+    // Form Add Question
+    const [newQText, setNewQText] = useState('');
+    const [newQType, setNewQType] = useState<'text' | 'rating' | 'yesno'>('rating');
+
+    useEffect(() => {
+        if(activeTab === 'questions') fetchQuestions();
+        else fetchResults();
+    }, [activeTab]);
+
+    const fetchQuestions = async () => {
+        setLoading(true);
+        const res = await apiService.getQuestions(false); // Admin mode
+        if(res.status === 'success') setQuestions(res.data);
+        setLoading(false);
+    };
+
+    const fetchResults = async () => {
+        setLoading(true);
+        const res = await apiService.getQuestionnaireResults();
+        if(res.status === 'success') setResults(res.data);
+        setLoading(false);
+    };
+
+    const handleAddQuestion = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if(!newQText) return;
+        
+        await apiService.addQuestion(newQText, newQType);
+        setNewQText('');
+        fetchQuestions();
+    };
+
+    const handleDeleteQuestion = async (id: number) => {
+        if(confirm('Hapus pertanyaan ini?')) {
+            await apiService.deleteQuestion(id);
+            fetchQuestions();
+        }
+    };
+
+    return (
+        <div className="max-w-5xl mx-auto space-y-6">
+            <div className="flex gap-4 border-b border-slate-200 pb-1">
+                <button 
+                    onClick={() => setActiveTab('questions')}
+                    className={`px-4 py-2 text-sm font-bold border-b-2 transition-colors ${activeTab === 'questions' ? 'border-unair-blue text-unair-blue' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
+                >
+                    <ListChecks className="w-4 h-4 inline mr-2"/>
+                    Daftar Pertanyaan
+                </button>
+                <button 
+                    onClick={() => setActiveTab('results')}
+                    className={`px-4 py-2 text-sm font-bold border-b-2 transition-colors ${activeTab === 'results' ? 'border-unair-blue text-unair-blue' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
+                >
+                    <BarChart3 className="w-4 h-4 inline mr-2"/>
+                    Hasil Respon User
+                </button>
+            </div>
+
+            {activeTab === 'questions' && (
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <h2 className="text-lg font-bold text-slate-800 mb-4">Tambah Pertanyaan Baru</h2>
+                    <form onSubmit={handleAddQuestion} className="flex flex-col md:flex-row gap-4 mb-8 bg-slate-50 p-4 rounded-lg border border-slate-100">
+                        <input 
+                            type="text" 
+                            className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-unair-blue outline-none"
+                            placeholder="Tulis pertanyaan..."
+                            value={newQText}
+                            onChange={e => setNewQText(e.target.value)}
+                        />
+                        <select 
+                            className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-unair-blue outline-none bg-white"
+                            value={newQType}
+                            onChange={e => setNewQType(e.target.value as any)}
+                        >
+                            <option value="rating">Rating (Bintang 1-5)</option>
+                            <option value="yesno">Pilihan Ya / Tidak</option>
+                            <option value="text">Esai / Teks Bebas</option>
+                        </select>
+                        <button type="submit" className="px-6 py-2 bg-unair-blue text-white font-bold rounded-lg hover:bg-blue-800">
+                            + Tambah
+                        </button>
+                    </form>
+
+                    <h3 className="font-bold text-slate-700 mb-4">Daftar Pertanyaan Aktif</h3>
+                    <div className="space-y-3">
+                        {loading ? <TableSkeleton/> : questions.length === 0 ? <p className="text-slate-400 italic">Belum ada pertanyaan.</p> : (
+                            questions.map((q) => (
+                                <div key={q.id} className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-lg hover:shadow-sm">
+                                    <div className="flex items-center gap-3">
+                                        <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${
+                                            q.question_type === 'rating' ? 'bg-yellow-100 text-yellow-700' :
+                                            q.question_type === 'yesno' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700'
+                                        }`}>
+                                            {q.question_type}
+                                        </span>
+                                        <span className="font-medium text-slate-800">{q.question_text}</span>
+                                    </div>
+                                    <button onClick={() => handleDeleteQuestion(q.id)} className="text-red-400 hover:text-red-600 p-2 hover:bg-red-50 rounded">
+                                        <Trash2 className="w-4 h-4"/>
+                                    </button>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'results' && (
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-slate-100 text-slate-700">
+                                <tr>
+                                    <th className="px-6 py-3">Waktu</th>
+                                    <th className="px-6 py-3">Responden</th>
+                                    <th className="px-6 py-3">Jawaban</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {loading ? <tr><td colSpan={3} className="p-4 text-center">Loading...</td></tr> : 
+                                 results.length === 0 ? <tr><td colSpan={3} className="p-8 text-center text-slate-400">Belum ada respon masuk.</td></tr> : (
+                                    results.map((res) => (
+                                        <tr key={res.id} className="hover:bg-slate-50">
+                                            <td className="px-6 py-4 text-slate-500 whitespace-nowrap align-top">{formatDate(res.created_at)}</td>
+                                            <td className="px-6 py-4 align-top">
+                                                <div className="font-bold text-slate-800">{res.respondent_name || 'Anonim'}</div>
+                                                <div className="text-xs text-slate-500 capitalize">{res.respondent_role}</div>
+                                            </td>
+                                            <td className="px-6 py-4 align-top">
+                                                <ul className="space-y-1">
+                                                    {res.answers.map((ans, idx) => (
+                                                        <li key={idx} className="text-xs">
+                                                            <span className="text-slate-400 mr-2">Q{ans.question_id}:</span>
+                                                            <span className="font-medium text-slate-700">"{ans.answer}"</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
 
 export const ReviewerDashboard: React.FC<ReviewerDashboardProps> = ({ submissions, isLoading, onReview }) => {
   if (isLoading && submissions.length === 0) return <TableSkeleton />;
@@ -148,12 +340,6 @@ export const ReviewerDashboard: React.FC<ReviewerDashboardProps> = ({ submission
   );
 };
 
-interface ReviewDetailProps {
-  submission: ResearchSubmission | null;
-  onBack: () => void;
-  onSubmitReview: (id: string, action: 'approve' | 'revise', feedback?: string) => Promise<void>;
-}
-
 export const ReviewDetail: React.FC<ReviewDetailProps> = ({ submission, onBack, onSubmitReview }) => {
   if (!submission) return <DetailSkeleton />;
   const [feedback, setFeedback] = useState('');
@@ -248,14 +434,6 @@ export const ReviewDetail: React.FC<ReviewDetailProps> = ({ submission, onBack, 
   );
 };
 
-// --- ADMIN COMPONENTS ---
-
-interface AdminSubmissionProps {
-  submissions: ResearchSubmission[];
-  isLoading: boolean;
-  onViewDetail: (sub: ResearchSubmission) => void;
-}
-
 export const AdminSubmissionMonitoring: React.FC<AdminSubmissionProps> = ({ submissions, isLoading, onViewDetail }) => {
     if (isLoading && submissions.length === 0) return <TableSkeleton />;
 
@@ -304,12 +482,6 @@ export const AdminSubmissionMonitoring: React.FC<AdminSubmissionProps> = ({ subm
       </div>
     );
 };
-
-interface AdminDetailProps {
-  submission: ResearchSubmission | null;
-  onBack: () => void;
-  onUploadCert: (id: string, file: File) => Promise<void>;
-}
 
 export const AdminSubmissionDetail: React.FC<AdminDetailProps> = ({ submission, onBack, onUploadCert }) => {
     if (!submission) return <DetailSkeleton />;
@@ -396,16 +568,6 @@ export const AdminSubmissionDetail: React.FC<AdminDetailProps> = ({ submission, 
         </div>
     );
 };
-
-// --- ADMIN USER MANAGEMENT ---
-interface AdminUserProps {
-  users: UserProfile[];
-  currentUser: UserProfile | null;
-  isLoading: boolean;
-  onStatusChange: (userId: string, status: UserStatus) => void;
-  onDeleteUser: (userId: string, adminName?: string) => void; 
-  onRefresh: () => void;
-}
 
 export const AdminUserManagement: React.FC<AdminUserProps> = ({ users, currentUser, isLoading, onStatusChange, onDeleteUser, onRefresh }) => {
   const [filter, setFilter] = useState<'all' | 'pending'>('all');
@@ -827,15 +989,7 @@ export const AdminUserManagement: React.FC<AdminUserProps> = ({ users, currentUs
   );
 };
 
-// ... (AdminDocumentManagement, AdminSettings remain unchanged) ...
-interface AdminDocumentProps {
-    documents: DocumentRequirement[];
-    onAdd: (label: string) => Promise<void>;
-    onDelete: (id: string) => Promise<void>;
-}
-
 export const AdminDocumentManagement: React.FC<AdminDocumentProps> = ({ documents, onAdd, onDelete }) => {
-    // ... (Keep existing)
     const [newItem, setNewItem] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
@@ -899,13 +1053,7 @@ export const AdminDocumentManagement: React.FC<AdminDocumentProps> = ({ document
     );
 };
 
-interface AdminSettingsProps {
-    currentUser: UserProfile;
-    onUpdateProfile: (name: string, email: string) => void;
-}
-
 export const AdminSettings: React.FC<AdminSettingsProps> = ({ currentUser, onUpdateProfile }) => {
-    // ... (Keep existing)
     const [name, setName] = useState(currentUser.name);
     const [email, setEmail] = useState(currentUser.email);
     const [currentPassword, setCurrentPassword] = useState('');
