@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Download, ChevronRight, FileText, Users, CheckCircle, ArrowRight, BookOpen, Menu, X, List, FileSignature, Microscope, Scale, Activity, Gavel, FileCheck, Brain, Lock } from 'lucide-react';
+import { ShieldCheck, Download, ChevronRight, FileText, Users, CheckCircle, ArrowRight, BookOpen, Menu, X, List, FileSignature, Microscope, Scale, Activity, Gavel, FileCheck, Brain, Lock, ExternalLink } from 'lucide-react';
 import { generateManualPDF } from './Shared';
 
 interface LandingPageProps {
@@ -15,7 +15,8 @@ const translations = {
       about: "Tentang KEPK",
       flow: "Alur Pengajuan",
       questionnaire: "Kuesioner",
-      guide: "Panduan",
+      guide: "Panduan Sistem",
+      downloads: "Unduh Dokumen",
       login: "Masuk SIM KEPK"
     },
     hero: {
@@ -25,6 +26,7 @@ const translations = {
       description: "Lembaga otoritas yang berwenang melakukan kajian etik, monitoring, dan evaluasi penelitian kesehatan untuk menjamin perlindungan subjek manusia sesuai standar WHO.",
       btn_submit: "Ajukan Protokol",
       btn_learn: "Pelajari Alur",
+      btn_download: "Download Dokumen KEPK",
       accredited: "Terakreditasi",
       accredited_sub: "Komite Etik Nasional",
       card_1: "3 Prinsip Etik",
@@ -86,84 +88,6 @@ const translations = {
       address: "Kampus C Mulyorejo, Surabaya",
       rights: "Komisi Etik Penelitian Kesehatan - Fakultas Keperawatan UNAIR. All rights reserved."
     }
-  },
-  en: {
-    nav: {
-      home: "Home",
-      about: "About KEPK",
-      flow: "Submission Flow",
-      questionnaire: "Questionnaire",
-      guide: "Guidebook",
-      login: "Login System"
-    },
-    hero: {
-      badge: "Health Research Ethics Committee",
-      title_1: "Ethical Integrity for",
-      title_2: "Research Quality",
-      description: "Authoritative body authorized to conduct ethical review, monitoring, and evaluation of health research to ensure the protection of human subjects according to WHO standards.",
-      btn_submit: "Submit Protocol",
-      btn_learn: "Learn Process",
-      accredited: "Accredited",
-      accredited_sub: "National Ethics Committee",
-      card_1: "3 Ethical Principles",
-      card_2: "7 Ethical Standards",
-      card_3: "25 WHO Guidelines"
-    },
-    about: {
-      title: "Information Center",
-      subtitle: "Guidelines, duties, and principles of research integrity.",
-      card_1_title: "Main Duties & Functions",
-      card_1_desc: "KEPK (Health Research Ethics Committee) is an autonomous institution authorized to conduct ethical reviews of health research through 3 ethical principles, 7 ethical standards, and 25 ethical guidelines.",
-      card_1_list: [
-        "Conduct ethical review of health research protocols involving humans and/or experimental animals.",
-        "Provide ethical clearance for research protocols.",
-        "Conduct monitoring and evaluation of research implementation that has obtained ethical approval.",
-        "Disseminate ethical guidelines according to WHO standards.",
-        "Propose suspension of health research implementation for deviating research.",
-        "Submit a re-review of health research protocols from other disputed institutions.",
-        "Conduct accreditation of ethics committee competence.",
-        "Conduct training on Health Research Ethics.",
-        "Create reports on Ethics Committee activities to the Faculty of Nursing."
-      ],
-      card_2_title: "Informed Consent",
-      card_2_desc_1: "Informed consent is approval given by a client or research subject regarding any action/treatment to be performed on them, after obtaining adequate explanation from health personnel or researchers.",
-      card_2_desc_2: "Must receive higher attention and position compared to informed consent for health service actions, because research subjects do not receive direct benefits from their participation.",
-      legal_impl: "Legal Implications",
-      legal_desc: "Besides containing ethical aspects, Informed consent also has legal implications. Violation will result in criminal, civil, or administrative legal sanctions.",
-      mandatory_for: "Mandatory For:",
-      mandatory_list: ["Human Subjects", "Society / Community", "Client Medical Record Data", "Biological Specimens"],
-      card_3_title: "Types of Health Research",
-      card_3_quote: "Health research is full of ethical signs because it involves human subjects exposed to discomfort and risk. Poor research methods are unethical.",
-      aspect_general: "General Aspects",
-      aspect_nursing: "Nursing Science Fields",
-      card_4_title: "Researcher Integrity",
-      integrity_5: "5 Pillars of Academic Integrity",
-      integrity_during: "Integrity During Research",
-      integrity_during_desc: "According to the Declaration of Helsinki (Paragraph 10): The researcher's duty is to protect the life, health, privacy, and dignity of human subjects.",
-      attention: "Special Attention:",
-      attention_desc: "Vulnerable subjects (children, disabled persons, pregnant women, elderly, etc).",
-      integrity_after: "Integrity After Research",
-      integrity_after_1: "1. Access to Results",
-      integrity_after_1_desc: "Populations that participate must benefit from the research results (Declaration of Helsinki No. 19 & 30).",
-      integrity_after_2: "2. Archiving",
-      integrity_after_2_desc: "Original data must be stored carefully for clarification purposes (audit trail) if needed in the future.",
-      integrity_after_3: "3. IPR & Publication",
-      integrity_after_3_desc: "Ethical integrity related to intellectual property (Patents, Copyrights) and Ownership of data."
-    },
-    flow: {
-      title: "Submission Flow",
-      subtitle: "Easy and transparent process from start to certificate issuance.",
-      steps: [
-        { title: "1. Registration", desc: "Create a researcher account using identity data (ID Number) and wait for admin validation." },
-        { title: "2. Submit Protocol", desc: "Fill out the submission form, upload documents, and complete the ethical self-assessment." },
-        { title: "3. Review Process", desc: "The protocol is checked by the reviewer. Revise if there are notes for improvement." },
-        { title: "4. EC Issuance", desc: "If approved, download the digital Ethical Clearance certificate." }
-      ]
-    },
-    footer: {
-      address: "Campus C Mulyorejo, Surabaya",
-      rights: "Health Research Ethics Committee - Faculty of Nursing UNAIR. All rights reserved."
-    }
   }
 };
 
@@ -181,6 +105,26 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterSystem, onOpenQ
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // --- INTERSECTION OBSERVER FOR SCROLL ANIMATION ---
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target); // Animate once
+          }
+        });
+      },
+      { threshold: 0.1 } // Trigger when 10% visible
+    );
+
+    const elements = document.querySelectorAll('.reveal-on-scroll');
+    elements.forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, []); // Run on mount
 
   const scrollToSection = (e: React.MouseEvent, id: string) => {
     e.preventDefault();
@@ -345,7 +289,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterSystem, onOpenQ
          
          <div className="container mx-auto px-4 md:px-8 relative z-10 text-center md:text-left">
             <div className="flex flex-col md:flex-row items-center">
-               <div className="md:w-1/2 mb-10 md:mb-0">
+               <div className="md:w-1/2 mb-10 md:mb-0 reveal-on-scroll">
                   <div className="inline-block px-4 py-1.5 bg-white/10 rounded-full border border-white/20 text-blue-100 text-sm font-semibold mb-6 animate-fadeIn">
                      {t.hero.badge}
                   </div>
@@ -356,17 +300,31 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterSystem, onOpenQ
                   <p className="text-lg text-blue-50 mb-8 max-w-xl leading-relaxed drop-shadow-md font-medium">
                      {t.hero.description}
                   </p>
-                  <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
-                     <button onClick={onEnterSystem} className="bg-unair-yellow text-slate-900 px-8 py-4 rounded-full font-bold text-lg hover:bg-yellow-400 transition-all shadow-lg hover:shadow-yellow-400/20 flex items-center justify-center">
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start flex-wrap">
+                     {/* TOMBOL 1: AJUKAN PROTOKOL */}
+                     <button onClick={onEnterSystem} className="w-full sm:w-auto bg-unair-yellow text-slate-900 px-8 py-4 rounded-full font-bold text-lg hover:bg-yellow-400 transition-all shadow-lg hover:shadow-yellow-400/20 flex items-center justify-center">
                         {t.hero.btn_submit} <ArrowRight className="w-5 h-5 ml-2"/>
                      </button>
-                     <button onClick={(e) => scrollToSection(e, 'prosedur')} className="bg-white/10 text-white border border-white/20 px-8 py-4 rounded-full font-bold text-lg hover:bg-white/20 transition-all flex items-center justify-center backdrop-blur-sm">
+                     
+                     {/* TOMBOL 2: PELAJARI ALUR */}
+                     <button onClick={(e) => scrollToSection(e, 'prosedur')} className="w-full sm:w-auto bg-white/10 text-white border border-white/20 px-8 py-4 rounded-full font-bold text-lg hover:bg-white/20 transition-all flex items-center justify-center backdrop-blur-sm">
                         {t.hero.btn_learn}
                      </button>
+                     
+                     {/* TOMBOL 3: DOWNLOAD DOKUMEN (BARU) */}
+                     <a 
+                       href="https://ners.unair.ac.id/site/index.php/kepk/alur-pengajuan" 
+                       target="_blank" 
+                       rel="noopener noreferrer"
+                       className="w-full sm:w-auto bg-green-600 text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-green-700 transition-all shadow-lg hover:shadow-green-900/20 flex items-center justify-center"
+                     >
+                        <Download className="w-5 h-5 mr-2"/>
+                        {t.hero.btn_download}
+                     </a>
                   </div>
                </div>
                
-               <div className="md:w-1/2 flex justify-center md:justify-end relative">
+               <div className="md:w-1/2 flex justify-center md:justify-end relative reveal-on-scroll">
                   <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 max-w-sm w-full shadow-2xl">
                      <div className="flex items-center gap-4 mb-6">
                         <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center shadow-lg">
@@ -400,7 +358,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterSystem, onOpenQ
       {/* Info Sections - STACKED LAYOUT WITH ZOOM TRANSITION */}
       <section id="tentang" className="py-20 bg-slate-50">
          <div className="container mx-auto px-4 md:px-8">
-            <div className="text-center max-w-3xl mx-auto mb-16">
+            <div className="text-center max-w-3xl mx-auto mb-16 reveal-on-scroll">
                <h2 className="text-3xl font-bold text-slate-900 mb-4">{t.about.title}</h2>
                <div className="w-20 h-1.5 bg-unair-yellow mx-auto rounded-full"></div>
                <p className="text-slate-500 mt-4">{t.about.subtitle}</p>
@@ -408,7 +366,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterSystem, onOpenQ
             
             <div className="space-y-8">
                 {/* 1. TUGAS POKOK */}
-                <div className="group bg-white rounded-2xl p-8 shadow-sm border border-slate-200 transition-all duration-500 hover:shadow-xl hover:scale-[1.02] hover:border-unair-blue/30 relative overflow-hidden">
+                <div className="group bg-white rounded-2xl p-8 shadow-sm border border-slate-200 transition-all duration-500 hover:shadow-xl hover:scale-[1.02] hover:border-unair-blue/30 relative overflow-hidden reveal-on-scroll">
                     {/* Decorative Background Effect on Hover */}
                     <div className="absolute -right-10 -top-10 w-40 h-40 bg-blue-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                     
@@ -432,7 +390,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterSystem, onOpenQ
                 </div>
 
                 {/* 2. INFORMED CONSENT */}
-                <div className="group bg-white rounded-2xl p-8 shadow-sm border border-slate-200 transition-all duration-500 hover:shadow-xl hover:scale-[1.02] hover:border-unair-blue/30 relative overflow-hidden">
+                <div className="group bg-white rounded-2xl p-8 shadow-sm border border-slate-200 transition-all duration-500 hover:shadow-xl hover:scale-[1.02] hover:border-unair-blue/30 relative overflow-hidden reveal-on-scroll">
                     <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-yellow-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                     
                     <div className="flex flex-col md:flex-row gap-8 items-start relative z-10">
@@ -473,7 +431,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterSystem, onOpenQ
                 </div>
 
                 {/* 3. JENIS PENELITIAN */}
-                <div className="group bg-white rounded-2xl p-8 shadow-sm border border-slate-200 transition-all duration-500 hover:shadow-xl hover:scale-[1.02] hover:border-unair-blue/30 relative overflow-hidden">
+                <div className="group bg-white rounded-2xl p-8 shadow-sm border border-slate-200 transition-all duration-500 hover:shadow-xl hover:scale-[1.02] hover:border-unair-blue/30 relative overflow-hidden reveal-on-scroll">
                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-slate-50 rounded-full opacity-0 group-hover:opacity-50 transition-opacity duration-500 blur-3xl pointer-events-none"></div>
 
                      <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center relative z-10">
@@ -530,7 +488,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterSystem, onOpenQ
                 </div>
 
                 {/* 4. INTEGRITAS */}
-                <div className="group bg-white rounded-2xl p-8 shadow-sm border border-slate-200 transition-all duration-500 hover:shadow-xl hover:scale-[1.02] hover:border-unair-blue/30 relative overflow-hidden">
+                <div className="group bg-white rounded-2xl p-8 shadow-sm border border-slate-200 transition-all duration-500 hover:shadow-xl hover:scale-[1.02] hover:border-unair-blue/30 relative overflow-hidden reveal-on-scroll">
                     <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center relative z-10">
                         <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4 group-hover:bg-unair-blue group-hover:text-white transition-colors duration-300">
                             <Scale className="w-6 h-6 text-unair-blue group-hover:text-white"/>
@@ -587,7 +545,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterSystem, onOpenQ
       {/* Procedure / Flow */}
       <section id="prosedur" className="py-20 bg-white">
          <div className="container mx-auto px-4 md:px-8">
-             <div className="text-center max-w-3xl mx-auto mb-16">
+             <div className="text-center max-w-3xl mx-auto mb-16 reveal-on-scroll">
                <h2 className="text-3xl font-bold text-slate-900 mb-4">{t.flow.title}</h2>
                <p className="text-slate-500">{t.flow.subtitle}</p>
             </div>
@@ -599,7 +557,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterSystem, onOpenQ
                {t.flow.steps.map((step, idx) => {
                   const colors = ["bg-blue-600", "bg-unair-yellow", "bg-orange-500", "bg-green-600"];
                   return (
-                    <div key={idx} className="bg-white p-6 pt-0 text-center group">
+                    <div key={idx} className="bg-white p-6 pt-0 text-center group reveal-on-scroll">
                        <div className={`w-16 h-16 ${colors[idx]} text-white rounded-full flex items-center justify-center text-xl font-bold shadow-lg mx-auto mb-6 group-hover:scale-110 transition-transform`}>
                           {idx + 1}
                        </div>

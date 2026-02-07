@@ -179,7 +179,7 @@ export const apiService = {
     return await getData('getQuestions', params);
   },
 
-  addQuestion: async (text: string, type: 'rating' | 'text' | 'yesno') => {
+  addQuestion: async (text: string, type: 'rating' | 'text' | 'yesno' | 'likert') => {
     return await postData('addQuestion', { text, type });
   },
 

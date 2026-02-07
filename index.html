@@ -32,6 +32,17 @@
         from { opacity: 0; transform: translateY(5px); }
         to { opacity: 1; transform: translateY(0); }
       }
+      
+      /* Scroll Reveal Animation */
+      .reveal-on-scroll {
+        opacity: 0;
+        transform: translateY(30px);
+        transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+      }
+      .reveal-on-scroll.is-visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
     </style>
   <script type="importmap">
 {
@@ -49,6 +60,16 @@
 </script>
 </head>
   <body class="bg-gray-50">
-    <div id="root"></div>
+    <div id="root">
+      <!-- Fallback Loading Screen (Mencegah Whitescreen saat JS Loading) -->
+      <div style="height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: #f8fafc; color: #475569; font-family: sans-serif;">
+        <div style="width: 50px; height: 50px; border: 4px solid #e2e8f0; border-top-color: #003B73; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        <h3 style="margin-top: 1.5rem; font-weight: 600; font-size: 1.125rem;">SIM KEPK</h3>
+        <p style="font-size: 0.875rem; opacity: 0.8;">Memuat Aplikasi...</p>
+      </div>
+      <style>
+        @keyframes spin { to { transform: rotate(360deg); } }
+      </style>
+    </div>
   </body>
 </html>

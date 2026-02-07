@@ -84,7 +84,7 @@ export interface ResearchSubmission {
 }
 
 // --- TYPE UNTUK KUESIONER ---
-export type QuestionType = 'rating' | 'text' | 'yesno';
+export type QuestionType = 'rating' | 'text' | 'yesno' | 'likert';
 
 export interface QuestionnaireQuestion {
   id: number;

@@ -105,7 +105,7 @@ CREATE TABLE IF NOT EXISTS admin_logs (
 CREATE TABLE IF NOT EXISTS questionnaire_questions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     question_text TEXT NOT NULL,
-    question_type VARCHAR(20) NOT NULL, -- 'rating', 'text', 'yesno'
+    question_type VARCHAR(20) NOT NULL, -- 'rating', 'text', 'yesno', 'likert'
     is_active TINYINT(1) DEFAULT 1
 );
 
@@ -120,19 +120,11 @@ CREATE TABLE IF NOT EXISTS questionnaire_responses (
 
 -- 9. DATA DEFAULT (SEEDING)
 
--- Default Dokumen Persyaratan
-INSERT IGNORE INTO config (id, label, is_required) VALUES 
-('protocol', 'Protokol Lengkap (PDF)', 1),
-('consent', 'Informed Consent / PSP', 1);
-
 -- Default Akun Administrator
 -- Username: admin
 -- Password: admin
 INSERT IGNORE INTO users (id, name, email, role, institution, status, password, joined_at) 
 VALUES ('ADM-001', 'Administrator Utama', 'admin', 'admin', 'Sekretariat KEPK', 'active', 'admin', NOW());
 
--- Default Pertanyaan Kuesioner
-INSERT IGNORE INTO questionnaire_questions (id, question_text, question_type, is_active) VALUES
-(1, 'Bagaimana kepuasan Anda terhadap layanan SIM KEPK?', 'rating', 1),
-(2, 'Apakah proses pengajuan mudah dipahami?', 'yesno', 1),
-(3, 'Saran dan masukan untuk pengembangan sistem:', 'text', 1);
+-- Catatan: Data dummy pertanyaan kuesioner dan dokumen persyaratan telah dihapus agar sistem mulai dalam keadaan bersih.
+-- Silakan tambahkan melalui dashboard Admin.

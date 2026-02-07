@@ -24,10 +24,8 @@ import {
 } from './components/AdminModule';
 
 // --- DEFAULT STATE JIKA API KOSONG ---
-const DEFAULT_DOC_REQS: DocumentRequirement[] = [
-  { id: 'protocol', label: 'Protokol Lengkap (PDF)', isRequired: true },
-  { id: 'consent', label: 'Informed Consent / PSP', isRequired: true },
-];
+// Dikurangkan agar tidak ada data dummy yang muncul jika belum disetting di Admin
+const DEFAULT_DOC_REQS: DocumentRequirement[] = [];
 
 // Custom Hook untuk State Persistence (Simulasi MPA)
 function usePersistedState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
@@ -335,6 +333,15 @@ export default function App() {
 
   // --- ACTIONS ---
 
+  // Handle Menu Navigation Logic (to clear notification)
+  const handleSetActiveView = (view: string) => {
+    setActiveView(view);
+    // Jika admin membuka menu Users, hilangkan notifikasi
+    if (view === 'admin-users') {
+      setNotificationCount(0);
+    }
+  };
+
   const handleCreateOrUpdateSubmission = async (newSub: Omit<ResearchSubmission, 'id' | 'status' | 'submissionDate' | 'progressReports'>) => {
     
     // Check if we are updating existing submission (Edit Mode)
@@ -506,6 +513,9 @@ export default function App() {
             onRevise={(sub) => { setSelectedSubmission(sub); setActiveView('submission'); }} 
           />
         );
+      case 'researcher-questionnaire':
+        // Menampilkan Kuesioner dalam mode Portal
+        return <Questionnaire currentUser={currentUser} userSubmissions={submissions} />;
       
       // REVIEWER VIEWS
       case 'admin-dashboard':
@@ -648,7 +658,7 @@ export default function App() {
       currentUser={currentUser}
       onLogout={handleLogout}
       activeView={activeView}
-      setActiveView={setActiveView}
+      setActiveView={handleSetActiveView} // Use the wrapper handler
       notificationCount={notificationCount} // Pass notification
     >
       {renderContent()}

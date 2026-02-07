@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, FileText, CheckCircle, ShieldCheck, UserCircle, LogOut, Users, Settings, FolderCog, FileStack, BookOpen, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckCircle, ShieldCheck, UserCircle, LogOut, Users, Settings, FolderCog, FileStack, BookOpen, MessageSquare, ClipboardList } from 'lucide-react';
 import { UserRole, UserProfile } from '../types';
 
 interface LayoutProps {
@@ -29,6 +29,7 @@ export const Layout: React.FC<LayoutProps> = ({
       { id: 'dashboard', label: 'Beranda', icon: LayoutDashboard },
       { id: 'submission', label: 'Pengajuan Baru', icon: FileText },
       { id: 'monitoring', label: 'Monitoring', icon: CheckCircle },
+      { id: 'researcher-questionnaire', label: 'Kuesioner & Evaluasi', icon: ClipboardList }, // NEW MENU
     ];
   } else if (currentRole === 'reviewer') {
     menuItems = [
@@ -40,7 +41,7 @@ export const Layout: React.FC<LayoutProps> = ({
       { id: 'admin-users', label: 'Manajemen User', icon: Users },
       { id: 'admin-submissions', label: 'Data Pengajuan', icon: FileStack },
       { id: 'admin-documents', label: 'Master Dokumen', icon: FolderCog },
-      { id: 'admin-questionnaire', label: 'Manajemen Kuesioner', icon: MessageSquare }, // NEW MENU
+      { id: 'admin-questionnaire', label: 'Manajemen Kuesioner', icon: MessageSquare }, 
       { id: 'admin-settings', label: 'Pengaturan Sistem', icon: Settings },
     ];
   }
