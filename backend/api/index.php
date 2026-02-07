@@ -61,6 +61,18 @@ function uploadBase64File($base64, $filename, $uploadDir, $baseUrl) {
     }
 }
 
+/**
+ * Helper untuk format nomor HP ke format Internasional (WhatsApp)
+ * 0812... -> 62812...
+ */
+function formatPhoneForWA($phone) {
+    $phone = preg_replace('/[^0-9]/', '', $phone); // Hapus non-angka
+    if (substr($phone, 0, 1) === '0') {
+        $phone = '62' . substr($phone, 1);
+    }
+    return $phone;
+}
+
 // --- MAIN ROUTING LOGIC ---
 
 $response = ["status" => "error", "message" => "Invalid action"];
@@ -146,7 +158,7 @@ try {
             break;
 
         case 'forgot_password':
-            // UPDATED LOGIC: Kirim NIP -> Notifikasi Admin
+            // UPDATED LOGIC: Catat ke Admin Logs (Priority) -> Kirim Email (Secondary)
             $idn = trim($payload['identityNumber']);
             
             // 1. Cek User exist by ID Number
@@ -155,7 +167,14 @@ try {
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($user) {
-                // 2. Kirim Email Notifikasi ke ADMIN
+                // A. Catat ke ADMIN LOGS agar admin bisa melihat di dashboard (Solusi jika email gagal)
+                // Kita gunakan nama 'SYSTEM' agar admin tahu ini notifikasi sistem
+                $logDesc = "PERMINTAAN RESET PASSWORD: " . $user['name'] . " (" . $user['identity_number'] . ")";
+                $logStmt = $conn->prepare("INSERT INTO admin_logs (admin_name, action_type, description) VALUES ('SYSTEM', 'RESET_REQUEST', :desc)");
+                $logStmt->execute([':desc' => $logDesc]);
+
+                // B. Kirim Email Notifikasi ke ADMIN (Dibungkus Try-Catch agar tidak error jika gagal)
+                $emailNote = "";
                 try {
                     $mailer = new SimpleSMTP(
                         $smtp_config['host'],
@@ -176,19 +195,18 @@ try {
                            <li><strong>Institusi:</strong> {$user['institution']}</li>
                            <li><strong>Email User:</strong> {$user['email']}</li>
                         </ul>
-                        <p>Silakan login ke Dashboard Admin > Manajemen User untuk mereset password pengguna ini secara manual.</p>
+                        <p>Silakan login ke Dashboard Admin > Manajemen User untuk mereset password pengguna ini ke Default (Sama dengan NIM/NIK).</p>
                     ";
 
-                    // Kirim ke email Admin (yang disetting di config)
                     $mailer->send($smtp_config['username'], $subject, $body, "Sistem SIM-KEPK");
-                    
-                    $response = ["status" => "success", "message" => "Permintaan terkirim. Admin akan memproses reset password Anda."];
-
                 } catch (Exception $e) {
-                    // Fallback jika email gagal, tetap beri pesan sukses ke user agar tidak panik (opsional), 
-                    // tapi di sini kita jujur error agar bisa debug
-                    $response = ["status" => "error", "message" => "Gagal mengirim notifikasi ke Admin. Silakan hubungi sekretariat."];
+                    // Jika email gagal, biarkan saja (silent fail), karena sudah tercatat di Log
+                    // Tambahkan catatan kecil di response (opsional)
+                    $emailNote = " (Notifikasi email tertunda, namun data sudah masuk ke sistem).";
                 }
+
+                // RESPONSE MESSAGE UPDATED
+                $response = ["status" => "success", "message" => "Permintaan diterima. Admin akan mengirimkan reset password. Harap konfirmasi ke Admin." . $emailNote];
 
             } else {
                 $response = ["status" => "error", "message" => "Nomor Identitas (NIM/NIP/NIK) tidak ditemukan."];
@@ -196,7 +214,7 @@ try {
             break;
             
         case 'adminResetUserPassword':
-            // Fitur Admin Reset Manual
+            // Fitur Admin Reset Manual (Ganti Password Langsung)
             if (!isset($payload['userId']) || !isset($payload['newPassword'])) {
                 throw new Exception("Parameter tidak lengkap.");
             }
@@ -204,7 +222,72 @@ try {
             $stmt = $conn->prepare("UPDATE users SET password = :pass WHERE id = :id");
             $stmt->execute([':pass' => $payload['newPassword'], ':id' => $payload['userId']]);
             
-            $response = ["status" => "success", "message" => "Password pengguna berhasil direset."];
+            $response = ["status" => "success", "message" => "Password pengguna berhasil direset secara manual."];
+            break;
+            
+        case 'adminResetToDefault':
+            // Logic Baru: Reset Password ke Username (Identity Number)
+            if (!isset($payload['userId'])) {
+                throw new Exception("User ID required.");
+            }
+            
+            // 1. Ambil data user
+            $stmt = $conn->prepare("SELECT name, email, phone, identity_number FROM users WHERE id = :id");
+            $stmt->execute([':id' => $payload['userId']]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if(!$user) throw new Exception("User tidak ditemukan.");
+            
+            $newPassword = $user['identity_number']; // Default = NIM/NIK
+            
+            // 2. Update Password
+            $upd = $conn->prepare("UPDATE users SET password = :pass WHERE id = :id");
+            $upd->execute([':pass' => $newPassword, ':id' => $payload['userId']]);
+            
+            // 3. Email Notification to User
+            $emailStatus = "";
+            try {
+                $mailer = new SimpleSMTP(
+                    $smtp_config['host'],
+                    $smtp_config['username'], 
+                    $smtp_config['password'], 
+                    $smtp_config['port'], 
+                    $smtp_config['secure']
+                );
+                
+                $subject = "Password Akun SIM KEPK Direset";
+                $body = "
+                    <h3>Reset Password Berhasil</h3>
+                    <p>Halo <strong>{$user['name']}</strong>,</p>
+                    <p>Password akun SIM KEPK Anda telah direset oleh Administrator menjadi default (sesuai NIM/NIK/NIP Anda).</p>
+                    <p><strong>Password Baru:</strong> {$newPassword}</p>
+                    <p>Silakan login dan segera ganti password Anda melalui menu Profil.</p>
+                ";
+                
+                $mailer->send($user['email'], $subject, $body, "Sistem SIM-KEPK");
+                $emailStatus = "Email notifikasi terkirim.";
+            } catch (Exception $e) {
+                $emailStatus = "Gagal kirim email ke user.";
+            }
+            
+            // 4. Prepare WhatsApp Link
+            $waPhone = formatPhoneForWA($user['phone']);
+            $waMessage = "Halo {$user['name']}, Admin SIM KEPK telah mereset password akun Anda menjadi default (sama dengan NIM/NIK):\n\n*{$newPassword}*\n\nSilakan login dan segera ganti password Anda.";
+            $waLink = "https://wa.me/{$waPhone}?text=" . urlencode($waMessage);
+            
+            // 5. Log
+            $logStmt = $conn->prepare("INSERT INTO admin_logs (admin_name, action_type, description) VALUES (:an, 'RESET_DEFAULT', :desc)");
+            $logStmt->execute([
+                ':an' => isset($payload['adminName']) ? $payload['adminName'] : 'Admin',
+                ':desc' => "Reset password ke default (NIM/NIK) untuk user: " . $user['name']
+            ]);
+            
+            $response = [
+                "status" => "success", 
+                "message" => "Password direset ke NIM/NIK. " . $emailStatus,
+                "whatsapp_link" => $waLink,
+                "new_password" => $newPassword
+            ];
             break;
 
         case 'reset_password':
@@ -253,6 +336,7 @@ try {
                 }
 
                 // 3. Update Data
+                $newName = isset($payload['name']) ? $payload['name'] : null;
                 $newEmail = isset($payload['email']) ? $payload['email'] : null;
                 $newPassword = isset($payload['newPassword']) && !empty($payload['newPassword']) ? $payload['newPassword'] : $payload['currentPassword'];
 
@@ -263,6 +347,11 @@ try {
                 if ($newEmail) {
                     $sql .= ", email = :email";
                     $params[':email'] = $newEmail;
+                }
+
+                if ($newName) {
+                    $sql .= ", name = :name";
+                    $params[':name'] = $newName;
                 }
 
                 $sql .= " WHERE id = :id";
@@ -469,9 +558,44 @@ try {
             break;
 
         case 'deleteUser':
+            // 1. Get user name first for logging
+            $stmtGet = $conn->prepare("SELECT name FROM users WHERE id = :id");
+            $stmtGet->execute([':id' => $payload['id']]);
+            $user = $stmtGet->fetch(PDO::FETCH_ASSOC);
+            $deletedUserName = $user ? $user['name'] : 'Unknown User';
+
+            // 2. Delete
             $stmt = $conn->prepare("DELETE FROM users WHERE id = :id");
             $stmt->execute([':id' => $payload['id']]);
+
+            // 3. Log Action (Jika parameter adminName dikirim)
+            if (isset($payload['adminName'])) {
+                $desc = "Menghapus user: " . $deletedUserName . " (ID: " . $payload['id'] . ")";
+                $logStmt = $conn->prepare("INSERT INTO admin_logs (admin_name, action_type, description) VALUES (:an, 'DELETE_USER', :desc)");
+                $logStmt->execute([
+                    ':an' => $payload['adminName'],
+                    ':desc' => $desc
+                ]);
+            }
+
             $response = ["status" => "success"];
+            break;
+            
+        case 'getAdminLogs':
+            // Ambil 50 log terakhir
+            $stmt = $conn->prepare("SELECT * FROM admin_logs ORDER BY timestamp DESC LIMIT 50");
+            $stmt->execute();
+            $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $response = ["status" => "success", "data" => $data];
+            break;
+            
+        // NEW ENDPOINT: Hitung request reset password dalam 3 hari terakhir
+        case 'getResetRequestCount':
+            $stmt = $conn->prepare("SELECT COUNT(*) as count FROM admin_logs WHERE action_type = 'RESET_REQUEST' AND timestamp >= DATE_SUB(NOW(), INTERVAL 3 DAY)");
+            $stmt->execute();
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $count = $result ? (int)$result['count'] : 0;
+            $response = ["status" => "success", "count" => $count];
             break;
             
         // ==========================================

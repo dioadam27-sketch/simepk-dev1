@@ -25,6 +25,14 @@ export interface UserProfile {
   phone?: string;
 }
 
+export interface AdminLog {
+  id: number;
+  admin_name: string;
+  action_type: string;
+  description: string;
+  timestamp: string;
+}
+
 // Interface baru untuk pengaturan dokumen oleh Admin
 export interface DocumentRequirement {
   id: string;

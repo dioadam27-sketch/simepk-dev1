@@ -325,7 +325,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick, onBackTo
                 </div>
                 <h2 className="text-2xl font-bold text-slate-900">Lupa Password?</h2>
                 <p className="text-slate-500 text-sm mt-2 leading-relaxed">
-                   Masukkan <strong>NIM / NIP / NIK</strong> terdaftar Anda. Admin akan menerima notifikasi dan melakukan reset password secara manual.
+                   Masukkan <strong>NIM / NIP / NIK</strong> terdaftar Anda. Admin akan mengirimkan reset password dan Anda diharapkan <strong>konfirmasi ke Admin</strong>.
                 </p>
              </div>
 

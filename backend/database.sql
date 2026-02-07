@@ -92,7 +92,16 @@ CREATE TABLE IF NOT EXISTS password_resets (
     KEY(token)
 );
 
--- 6. DATA DEFAULT (SEEDING)
+-- 6. TABEL ADMIN LOGS (BARU)
+CREATE TABLE IF NOT EXISTS admin_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    admin_name VARCHAR(100) NOT NULL,
+    action_type VARCHAR(50) NOT NULL,
+    description TEXT NOT NULL,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 7. DATA DEFAULT (SEEDING)
 
 -- Default Dokumen Persyaratan
 INSERT IGNORE INTO config (id, label, is_required) VALUES 

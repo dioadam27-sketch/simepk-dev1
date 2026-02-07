@@ -1,6 +1,6 @@
 import React from 'react';
 import { SubmissionStatus } from '../types';
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 
 // --- DATE FORMATTER (WIB / JAKARTA) ---
 export const formatDate = (dateString: string | undefined) => {
@@ -109,11 +109,20 @@ export const generateManualPDF = (role: 'general' | 'researcher' | 'reviewer' | 
     y += (splitText.length * 5) + 3;
   };
 
+  const checkPageBreak = (heightNeeded: number) => {
+    if (y + heightNeeded > 280) {
+      doc.addPage();
+      y = 20;
+    }
+  }
+
   // Header
   doc.setFontSize(10);
   doc.text("SIM KEPK - Fakultas Keperawatan Universitas Airlangga", 14, 10);
   doc.line(14, 12, 196, 12);
+  y = 25;
 
+  // --- RESEARCHER GUIDE ---
   if (role === 'general' || role === 'researcher') {
     addTitle("PANDUAN PENGGUNA: PENELITI");
     
@@ -123,6 +132,7 @@ export const generateManualPDF = (role: 'general' | 'researcher' | 'reviewer' | 
     addSubtitle("2. Pengajuan Protokol Baru");
     addText("• Login menggunakan NIP/NIM/NIK dan Password.\n• Klik menu 'Pengajuan Baru' di sidebar.\n• Tahap 1: Isi Judul, Abstrak, dan Anggota Peneliti. Upload dokumen persyaratan (Protokol & PSP).\n• Tahap 2: Isi Self-Assessment 7 Standar Etik.\n• Klik 'Kirim Pengajuan'. Status akan berubah menjadi 'Submitted'.");
 
+    checkPageBreak(30);
     addSubtitle("3. Proses Telaah & Revisi");
     addText("• Protokol akan ditelaah oleh Reviewer.\n• Cek status secara berkala di menu 'Monitoring'.\n• Jika status 'Perlu Revisi', lihat catatan reviewer dan klik tombol 'Perbaiki Dokumen' untuk upload ulang.");
 
@@ -133,22 +143,37 @@ export const generateManualPDF = (role: 'general' | 'researcher' | 'reviewer' | 
     addText("• Pada halaman login, klik 'Lupa Password'.\n• Masukkan NIP/NIM/NIK Anda.\n• Admin akan menerima notifikasi dan melakukan reset password secara manual.");
   }
 
-  if (role === 'reviewer') {
-    if(y > 200) { doc.addPage(); y = 20; } else { y += 10; }
+  // --- REVIEWER GUIDE (Sekarang masuk juga di General) ---
+  if (role === 'general' || role === 'reviewer') {
+    // Jika ini adalah panduan general, tambahkan page break pemisah
+    if (role === 'general') {
+        doc.addPage();
+        y = 20;
+    }
+    
     addTitle("PANDUAN PENGGUNA: REVIEWER");
 
-    addSubtitle("1. Dashboard Telaah");
-    addText("• Login sebagai Reviewer.\n• Dashboard menampilkan ringkasan protokol yang masuk dan perlu ditelaah.\n• Klik tombol 'Telaah' pada tabel 'Daftar Telaah Masuk'.");
+    addSubtitle("1. Akses & Login");
+    addText("• Buka Portal Pengguna SIM KEPK.\n• Masuk menggunakan NIM/NIP/NIK dan Password yang telah didaftarkan.\n• Pastikan memilih tab peran 'Reviewer' saat mendaftar atau login (jika akun ganda).");
 
-    addSubtitle("2. Melakukan Telaah");
-    addText("• Reviewer dapat melihat detail protokol, dokumen lampiran, dan self-assessment peneliti.\n• Tuliskan catatan/masukan pada kolom 'Keputusan Reviewer'.\n• Pilih 'Minta Revisi' jika dokumen belum lengkap, atau 'Setujui' jika sudah memenuhi standar etik.");
+    addSubtitle("2. Dashboard Telaah");
+    addText("• Halaman utama menampilkan statistik protokol yang masuk.\n• Tabel 'Daftar Telaah Masuk' berisi protokol dengan status 'Submitted' atau 'Revisi' yang membutuhkan tindakan Anda.\n• Klik tombol 'Telaah' (ikon Mata) untuk mulai memeriksa.");
 
-    addSubtitle("3. Arsip");
-    addText("• Protokol yang telah disetujui akan masuk ke tabel 'Arsip Disetujui' dan sertifikat dapat dilihat.");
+    addSubtitle("3. Proses Telaah Protokol");
+    addText("• Periksa Detail: Baca judul, peneliti, dan abstrak.\n• Periksa Dokumen: Klik tombol 'Lihat Dokumen' untuk membuka PDF Protokol/Informed Consent di tab baru.\n• Periksa Self-Assessment: Baca jawaban peneliti terhadap 7 Standar Etik (Nilai Sosial, Nilai Ilmiah, dll).");
+
+    checkPageBreak(60);
+    addSubtitle("4. Memberikan Keputusan");
+    addText("Di bagian bawah halaman detail, terdapat kolom 'Keputusan Reviewer'.\n\nOPSI A: MINTA REVISI\n• Pilih ini jika dokumen tidak lengkap atau belum memenuhi standar etik.\n• Wajib menuliskan catatan perbaikan pada kolom feedback.\n• Status pengajuan akan berubah menjadi 'Perlu Revisi' dan dikembalikan ke peneliti.\n\nOPSI B: SETUJUI (APPROVE)\n• Pilih ini jika protokol sudah memenuhi seluruh prinsip etik.\n• Sistem akan mencatat tanggal persetujuan (Approval Date).\n• Status berubah menjadi 'Approved'. Admin akan menerbitkan sertifikat EC.");
+
+    checkPageBreak(40);
+    addSubtitle("5. Monitoring & Arsip");
+    addText("• Protokol yang telah disetujui akan pindah ke tabel 'Arsip Disetujui'.\n• Anda dapat melihat kembali riwayat telaah dan sertifikat yang telah diterbitkan oleh Admin.");
   }
 
+  // --- ADMIN GUIDE ---
   if (role === 'admin') {
-    if(y > 200) { doc.addPage(); y = 20; } else { y += 10; }
+    if(y > 200) { doc.addPage(); y = 20; }
     addTitle("PANDUAN PENGGUNA: ADMINISTRATOR");
 
     addSubtitle("1. Manajemen User");
@@ -170,5 +195,6 @@ export const generateManualPDF = (role: 'general' | 'researcher' | 'reviewer' | 
     doc.text(`Dicetak pada: ${new Date().toLocaleString('id-ID')}`, 14, 290);
   }
 
-  doc.save(`Panduan_SIM_KEPK_${role}.pdf`);
+  const fileName = role === 'general' ? 'Panduan_Lengkap_SIM_KEPK.pdf' : `Panduan_SIM_KEPK_${role}.pdf`;
+  doc.save(fileName);
 };

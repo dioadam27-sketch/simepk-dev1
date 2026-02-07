@@ -96,13 +96,24 @@ export const apiService = {
     return await postData('updateUserStatus', { id, status });
   },
 
-  deleteUser: async (id: string) => {
-    return await postData('deleteUser', { id });
+  // UPDATE: Delete user with Admin Log info
+  deleteUser: async (id: string, adminName?: string) => {
+    return await postData('deleteUser', { id, adminName });
   },
   
-  // Method baru untuk update profil admin
-  updateAdminProfile: async (id: string, email: string, currentPassword: string, newPassword?: string) => {
-      return await postData('updateAdminProfile', { id, email, currentPassword, newPassword });
+  // NEW: Get logs
+  getAdminLogs: async () => {
+    return await getData('getAdminLogs');
+  },
+  
+  // NEW: Get Notification Count (Reset Requests)
+  getResetRequestCount: async () => {
+    return await getData('getResetRequestCount');
+  },
+  
+  // Method baru untuk update profil admin (Updated with Name)
+  updateAdminProfile: async (id: string, name: string, email: string, currentPassword: string, newPassword?: string) => {
+      return await postData('updateAdminProfile', { id, name, email, currentPassword, newPassword });
   },
 
   // UPDATE: Request Password Reset via NIP/NIK (Notifikasi ke Admin)
@@ -110,9 +121,14 @@ export const apiService = {
     return await postData('forgot_password', { identityNumber });
   },
 
-  // Manual Reset Password (By Admin)
+  // Manual Reset Password (By Admin - Change Password Directly)
   adminResetUserPassword: async (userId: string, newPassword: string) => {
       return await postData('adminResetUserPassword', { userId, newPassword });
+  },
+  
+  // NEW: Reset Password to Default (Identity Number)
+  adminResetToDefault: async (userId: string, adminName: string) => {
+      return await postData('adminResetToDefault', { userId, adminName });
   },
 
   // NEW: Reset Password (via Token - Legacy/Opsional jika admin mau kirim link manual)

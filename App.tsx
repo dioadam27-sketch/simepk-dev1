@@ -172,6 +172,7 @@ export default function App() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [docRequirements, setDocRequirements] = useState<DocumentRequirement[]>(DEFAULT_DOC_REQS);
   const [isLoading, setIsLoading] = useState(false);
+  const [notificationCount, setNotificationCount] = useState(0); // New state for notifications
   
   // State untuk Reset Password Flow
   const [resetToken, setResetToken] = useState<string | null>(null);
@@ -213,11 +214,18 @@ export default function App() {
         setDocRequirements(sanitizedDocs);
       }
 
-      // 3. Admin Only: Fetch Users
+      // 3. Admin Only Logic
       if (currentUser.role === 'admin') {
+        // Fetch Users
         const usersRes = await apiService.getUsers();
         if (usersRes.status === 'success') {
           setUsers(usersRes.data);
+        }
+        
+        // Fetch Notifications (Reset Requests)
+        const notifRes = await apiService.getResetRequestCount();
+        if (notifRes.status === 'success') {
+            setNotificationCount(notifRes.count);
         }
       }
     } catch (error) {
@@ -424,9 +432,10 @@ export default function App() {
     apiService.updateUserStatus(userId, status).catch(err => console.error("Sync failed", err));
   };
 
-  const handleDeleteUser = async (userId: string) => {
+  const handleDeleteUser = async (userId: string, adminName?: string) => {
     setUsers(prev => prev.filter(u => u.id !== userId));
-    apiService.deleteUser(userId).catch(err => console.error("Sync failed", err));
+    // Pass Admin Name for Logging
+    apiService.deleteUser(userId, adminName).catch(err => console.error("Sync failed", err));
   };
 
   const handleAddDocRequirement = async (label: string) => {
@@ -512,9 +521,11 @@ export default function App() {
         return (
           <AdminUserManagement 
             users={users} 
+            currentUser={currentUser} // Pass currentUser for logging
             isLoading={isLoading} 
             onStatusChange={handleUserStatusChange}
             onDeleteUser={handleDeleteUser}
+            onRefresh={fetchData} // Pass fetchData trigger
           />
         );
       case 'admin-submissions':
@@ -548,7 +559,7 @@ export default function App() {
           currentUser ? (
               <AdminSettings 
                 currentUser={currentUser} 
-                onUpdateProfile={(newEmail) => setCurrentUser(prev => prev ? { ...prev, email: newEmail } : null)}
+                onUpdateProfile={(newName, newEmail) => setCurrentUser(prev => prev ? { ...prev, name: newName, email: newEmail } : null)}
               />
           ) : <div>Loading...</div>
         );
@@ -579,7 +590,7 @@ export default function App() {
                    </button>
                 </div>
 
-                {currentUser?.role === 'reviewer' && (
+                {(currentUser?.role === 'reviewer' || currentUser?.role === 'admin') && (
                   <div className="border border-slate-200 rounded-xl p-6 hover:shadow-lg transition-all hover:border-unair-blue group">
                     <h3 className="font-bold text-lg text-slate-800 mb-2">Panduan Reviewer</h3>
                     <p className="text-sm text-slate-500 mb-4">Cara melakukan telaah protokol, memberikan catatan revisi, dan persetujuan.</p>
@@ -626,6 +637,7 @@ export default function App() {
       onLogout={handleLogout}
       activeView={activeView}
       setActiveView={setActiveView}
+      notificationCount={notificationCount} // Pass notification
     >
       {renderContent()}
     </Layout>
